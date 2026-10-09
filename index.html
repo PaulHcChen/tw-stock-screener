@@ -13,7 +13,7 @@
 
     body {
       margin: 0;
-      font-family: system-ui, sans-serif;
+      font-family: system-ui, -apple-system, sans-serif;
       background: #f3f6fa;
       color: #1f2937;
     }
@@ -45,7 +45,8 @@
     h3 { font-size: 15px; margin: 0 0 10px; }
 
     .field { margin-bottom: 15px; }
-    .field label, .field-title {
+
+    .field label {
       display: block;
       font-size: 14px;
       font-weight: 600;
@@ -63,6 +64,17 @@
       font-size: 16px;
     }
 
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      margin: 2px 0 0;
+      flex-shrink: 0;
+    }
+
+    input[type="file"] {
+      font-size: 14px;
+    }
+
     .two {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -78,30 +90,43 @@
       line-height: 1.5;
     }
 
-    .check input {
-      width: 18px;
-      height: 18px;
-      margin: 2px 0 0;
-      flex-shrink: 0;
-    }
-
-    .hint {
-      font-size: 12px;
-      color: #64748b;
-      line-height: 1.6;
-    }
-
     .button {
       display: block;
       width: 100%;
-      padding: 13px;
+      padding: 12px;
       border: 0;
       border-radius: 10px;
       background: #1769aa;
       color: white;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
       cursor: pointer;
+      margin-top: 9px;
+    }
+
+    .button.secondary {
+      background: #e8eef5;
+      color: #16324f;
+    }
+
+    .button.danger {
+      background: #fff0f0;
+      color: #a11b1b;
+    }
+
+    .button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .hint, .status {
+      font-size: 12px;
+      color: #64748b;
+      line-height: 1.7;
+    }
+
+    .status {
+      overflow-wrap: anywhere;
     }
 
     .summary {
@@ -109,12 +134,6 @@
       line-height: 1.8;
       font-size: 14px;
       overflow-wrap: anywhere;
-    }
-
-    .status {
-      color: #64748b;
-      font-size: 13px;
-      line-height: 1.6;
     }
 
     footer {
@@ -129,25 +148,46 @@
 <body>
   <header>
     <h1>台股智慧選股</h1>
-    <p>設定自己的條件，篩選符合規則的股票</p>
+    <p>設定自己的條件，管理個人選股策略</p>
   </header>
 
   <main>
     <section class="card">
-      <h2>行情狀態</h2>
-      <p class="status">
-        尚未連接行情資料。目前僅提供條件設定與預覽。
+      <h2>資料狀態</h2>
+      <p class="status" id="dataStatus" aria-live="polite">
+        正在讀取本機策略資料……
+      </p>
+      <p class="hint">
+        策略資料只儲存在目前瀏覽器的本機空間，不會自動上傳到 GitHub。
       </p>
     </section>
 
     <section class="card">
-      <h2>選股策略設定</h2>
+      <h2>策略管理</h2>
+
+      <div class="field">
+        <label for="strategySelect">目前使用的策略</label>
+        <select id="strategySelect"></select>
+      </div>
 
       <div class="field">
         <label for="strategyName">策略名稱</label>
-        <input id="strategyName" value="我的選股策略"
-          maxlength="40">
+        <input id="strategyName" maxlength="40"
+          placeholder="例如：突破放量策略">
       </div>
+
+      <button class="button" id="saveButton">儲存目前策略</button>
+      <button class="button secondary" id="newButton">新增策略</button>
+      <button class="button secondary" id="duplicateButton">複製目前策略</button>
+      <button class="button danger" id="deleteButton">刪除目前策略</button>
+
+      <p class="status" id="saveStatus" aria-live="polite">
+        尚未操作。
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>選股條件</h2>
 
       <div class="field">
         <label for="market">股票市場</label>
@@ -163,12 +203,12 @@
         <div class="field">
           <label for="minPrice">最低股價</label>
           <input id="minPrice" type="number"
-            min="0" step="0.01" value="20">
+            min="0" step="0.01">
         </div>
         <div class="field">
           <label for="maxPrice">最高股價</label>
           <input id="maxPrice" type="number"
-            min="0" step="0.01" value="200">
+            min="0" step="0.01">
         </div>
       </div>
 
@@ -176,20 +216,17 @@
       <div class="two">
         <div class="field">
           <label for="minChange">最低漲幅</label>
-          <input id="minChange" type="number"
-            step="0.1" value="2">
+          <input id="minChange" type="number" step="0.1">
         </div>
         <div class="field">
           <label for="maxChange">最高漲幅</label>
-          <input id="maxChange" type="number"
-            step="0.1" value="7">
+          <input id="maxChange" type="number" step="0.1">
         </div>
       </div>
 
       <div class="field">
         <label for="minVolume">最低成交量（張）</label>
-        <input id="minVolume" type="number"
-          min="0" step="1" value="1000">
+        <input id="minVolume" type="number" min="0" step="1">
       </div>
 
       <h3>技術指標條件</h3>
@@ -200,79 +237,304 @@
       </label>
 
       <label class="check">
-        <input id="ma20" type="checkbox" checked>
+        <input id="ma20" type="checkbox">
         <span>股價高於 20 日均線</span>
       </label>
 
       <label class="check">
-        <input id="volumeSurge" type="checkbox" checked>
+        <input id="volumeSurge" type="checkbox">
         <span>成交量高於過去 20 個交易日平均量</span>
       </label>
 
       <div class="field">
         <label for="logic">條件組合方式</label>
         <select id="logic">
-          <option value="AND">AND：所有啟用條件都必須符合</option>
-          <option value="OR">OR：至少一個啟用條件符合</option>
+          <option value="AND">AND：所有條件都必須符合</option>
+          <option value="OR">OR：至少一個條件符合</option>
         </select>
         <p class="hint">
-          此設定將套用到本頁所有啟用的選股條件。
-          OR 模式可能篩出較多股票。
+          股價區間、漲幅區間及成交量下限各自是一組條件。
+          AND／OR 將套用到這些條件及已勾選的技術指標。
         </p>
       </div>
 
       <button class="button" id="previewButton">
-        更新選股規則預覽
+        更新條件預覽
       </button>
     </section>
 
     <section class="card">
-      <h2>選股規則預覽</h2>
+      <h2>條件預覽</h2>
       <div id="summary" class="summary"></div>
       <p class="status">
-        注意：這裡顯示的是條件設定，不是真實選股結果。
-        尚未連接行情資料。
+        這裡是條件設定，不是真實選股結果。目前尚未連接行情資料。
       </p>
     </section>
 
     <section class="card">
-      <h2>篩選結果</h2>
-      <p class="status">
-        完成行情介接後，這裡會列出符合條件的股票。
+      <h2>策略備份與還原</h2>
+      <p class="hint">
+        匯出所有策略為 JSON 檔案，方便備份或轉移。
+        還原會以備份內容取代目前瀏覽器中的全部策略。
       </p>
+
+      <button class="button" id="exportButton">
+        匯出 JSON 備份
+      </button>
+
+      <div class="field" style="margin-top:16px">
+        <label for="importFile">選擇 JSON 備份檔</label>
+        <input id="importFile" type="file" accept=".json,application/json">
+      </div>
+
+      <button class="button secondary" id="importButton">
+        還原 JSON 備份
+      </button>
+
+      <p class="status" id="backupStatus" aria-live="polite"></p>
     </section>
   </main>
 
   <footer>台股智慧選股 PWA · Stage 1</footer>
 
   <script>
+    "use strict";
+
+    const STORAGE_KEY = "twStockScreenerDataV1";
     const $ = id => document.getElementById(id);
 
-    function getRules() {
-      const conditions = [];
+    const DEFAULT_RULES = {
+      market: "all",
+      minPrice: "20",
+      maxPrice: "200",
+      minChange: "2",
+      maxChange: "7",
+      minVolume: "1000",
+      ma5: false,
+      ma20: true,
+      volumeSurge: true,
+      logic: "AND"
+    };
 
-      conditions.push(
-        `股價介於 ${$("minPrice").value}～${$("maxPrice").value} 元`
-      );
+    let strategies = [];
+    let currentId = "";
+    let storageAvailable = true;
+    let busy = false;
 
-      conditions.push(
-        `當日漲幅介於 ${$("minChange").value}～${$("maxChange").value}%`
-      );
-
-      conditions.push(
-        `成交量至少 ${$("minVolume").value} 張`
-      );
-
-      if ($("ma5").checked) {
-        conditions.push("股價高於 5 日均線");
+    function makeId() {
+      if (window.crypto && crypto.randomUUID) {
+        return crypto.randomUUID();
       }
 
-      if ($("ma20").checked) {
-        conditions.push("股價高於 20 日均線");
+      return "s-" + Date.now() + "-" +
+        Math.random().toString(36).slice(2, 10);
+    }
+
+    function makeStrategy(name, rules = DEFAULT_RULES) {
+      return {
+        id: makeId(),
+        name,
+        rules: { ...rules },
+        updatedAt: new Date().toISOString()
+      };
+    }
+
+    function setStatus(id, message) {
+      $(id).textContent = message;
+    }
+
+    function readStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+
+        if (raw === null) {
+          strategies = [makeStrategy("我的選股策略")];
+          currentId = strategies[0].id;
+          persist();
+          return;
+        }
+
+        const data = JSON.parse(raw);
+
+        if (
+          !data ||
+          data.version !== 1 ||
+          !Array.isArray(data.strategies) ||
+          data.strategies.length === 0
+        ) {
+          throw new Error("資料格式不正確");
+        }
+
+        strategies = data.strategies.map(s => ({
+          id: String(s.id),
+          name: String(s.name || "未命名策略").slice(0, 40),
+          rules: normalizeRules(s.rules),
+          updatedAt: String(s.updatedAt || "")
+        }));
+
+        currentId = strategies.some(s => s.id === data.currentId)
+          ? data.currentId
+          : strategies[0].id;
+
+        storageAvailable = true;
+      } catch (error) {
+        if (error instanceof SyntaxError) {
+          strategies = [makeStrategy("我的選股策略")];
+          currentId = strategies[0].id;
+          storageAvailable = false;
+          setStatus(
+            "dataStatus",
+            "原有策略資料無法解析，未自動覆寫。請勿先匯入或儲存，以免覆蓋原資料。"
+          );
+          return;
+        }
+
+        if (error.name === "QuotaExceededError") {
+          storageAvailable = false;
+          strategies = [makeStrategy("我的選股策略")];
+          currentId = strategies[0].id;
+          setStatus("dataStatus", "本機儲存空間不足。");
+          return;
+        }
+
+        strategies = [makeStrategy("我的選股策略")];
+        currentId = strategies[0].id;
+        storageAvailable = false;
+        setStatus(
+          "dataStatus",
+          "無法讀取本機資料。請確認瀏覽器允許網站儲存資料。"
+        );
+      }
+    }
+
+    function normalizeRules(r) {
+      r = r || {};
+      return {
+        market: ["all", "listed", "otc"].includes(r.market)
+          ? r.market : "all",
+        minPrice: String(r.minPrice ?? "20"),
+        maxPrice: String(r.maxPrice ?? "200"),
+        minChange: String(r.minChange ?? "2"),
+        maxChange: String(r.maxChange ?? "7"),
+        minVolume: String(r.minVolume ?? "1000"),
+        ma5: r.ma5 === true,
+        ma20: r.ma20 === true,
+        volumeSurge: r.volumeSurge === true,
+        logic: r.logic === "OR" ? "OR" : "AND"
+      };
+    }
+
+    function persist() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          version: 1,
+          currentId,
+          strategies
+        }));
+
+        storageAvailable = true;
+        setStatus("dataStatus", "本機儲存正常。資料尚未連接行情，也未上傳。");
+        return true;
+      } catch (error) {
+        storageAvailable = false;
+        setStatus(
+          "dataStatus",
+          "儲存失敗：" +
+          (error.name === "QuotaExceededError"
+            ? "本機空間不足，請先匯出備份。"
+            : "瀏覽器可能禁止本機儲存。")
+        );
+        return false;
+      }
+    }
+
+    function currentStrategy() {
+      return strategies.find(s => s.id === currentId);
+    }
+
+    function renderStrategySelect() {
+      const select = $("strategySelect");
+      select.replaceChildren();
+
+      strategies.forEach(s => {
+        const option = document.createElement("option");
+        option.value = s.id;
+        option.textContent = s.name;
+        select.appendChild(option);
+      });
+
+      select.value = currentId;
+      $("deleteButton").disabled = strategies.length <= 1;
+    }
+
+    function readForm() {
+      return {
+        market: $("market").value,
+        minPrice: $("minPrice").value,
+        maxPrice: $("maxPrice").value,
+        minChange: $("minChange").value,
+        maxChange: $("maxChange").value,
+        minVolume: $("minVolume").value,
+        ma5: $("ma5").checked,
+        ma20: $("ma20").checked,
+        volumeSurge: $("volumeSurge").checked,
+        logic: $("logic").value
+      };
+    }
+
+    function writeForm(rules) {
+      const r = normalizeRules(rules);
+
+      $("market").value = r.market;
+      $("minPrice").value = r.minPrice;
+      $("maxPrice").value = r.maxPrice;
+      $("minChange").value = r.minChange;
+      $("maxChange").value = r.maxChange;
+      $("minVolume").value = r.minVolume;
+      $("ma5").checked = r.ma5;
+      $("ma20").checked = r.ma20;
+      $("volumeSurge").checked = r.volumeSurge;
+      $("logic").value = r.logic;
+      $("strategyName").value = currentStrategy().name;
+
+      updatePreview();
+    }
+
+    function validRules(r) {
+      const numericFields = [
+        r.minPrice, r.maxPrice,
+        r.minChange, r.maxChange, r.minVolume
+      ];
+
+      if (numericFields.some(v => v === "" || !Number.isFinite(Number(v)))) {
+        return "請填妥所有數值欄位。";
       }
 
-      if ($("volumeSurge").checked) {
-        conditions.push("成交量高於 20 日均量");
+      if (
+        Number(r.minPrice) < 0 ||
+        Number(r.maxPrice) < Number(r.minPrice)
+      ) {
+        return "股價條件錯誤：最低股價不可大於最高股價，股價不可為負數。";
+      }
+
+      if (Number(r.maxChange) < Number(r.minChange)) {
+        return "漲幅條件錯誤：最低漲幅不可大於最高漲幅。";
+      }
+
+      if (Number(r.minVolume) < 0) {
+        return "成交量不可為負數。";
+      }
+
+      return "";
+    }
+
+    function updatePreview() {
+      const r = readForm();
+      const error = validRules(r);
+
+      if (error) {
+        $("summary").textContent = error;
+        return false;
       }
 
       const marketNames = {
@@ -281,55 +543,352 @@
         otc: "上櫃"
       };
 
-      const logicNames = {
-        AND: "所有條件都必須符合（AND）",
-        OR: "至少一個條件符合（OR）"
-      };
+      const conditions = [
+        `股價介於 ${r.minPrice}～${r.maxPrice} 元`,
+        `當日漲幅介於 ${r.minChange}～${r.maxChange}%`,
+        `成交量至少 ${r.minVolume} 張`
+      ];
 
-      return [
-        `策略名稱：${$("strategyName").value || "未命名策略"}`,
-        `股票市場：${marketNames[$("market").value]}`,
-        `組合方式：${logicNames[$("logic").value]}`,
+      if (r.ma5) conditions.push("股價高於 5 日均線");
+      if (r.ma20) conditions.push("股價高於 20 日均線");
+      if (r.volumeSurge) conditions.push("成交量高於 20 日均量");
+
+      const strategy = currentStrategy();
+
+      $("summary").textContent = [
+        `策略名稱：${strategy.name}`,
+        `股票市場：${marketNames[r.market]}`,
+        `組合方式：${r.logic === "AND"
+          ? "所有條件都必須符合（AND）"
+          : "至少一個條件符合（OR）"}`,
         "",
         "條件清單：",
         ...conditions.map((item, i) => `${i + 1}. ${item}`)
       ].join("\n");
+
+      return true;
     }
 
-    function updatePreview() {
-      const minPrice = Number($("minPrice").value);
-      const maxPrice = Number($("maxPrice").value);
-      const minChange = Number($("minChange").value);
-      const maxChange = Number($("maxChange").value);
-      const minVolume = Number($("minVolume").value);
+    function saveCurrent(showMessage = true) {
+      const error = validRules(readForm());
+
+      if (error) {
+        setStatus("saveStatus", error);
+        return false;
+      }
+
+      const s = currentStrategy();
+      const name = $("strategyName").value.trim();
+
+      if (!name) {
+        setStatus("saveStatus", "請輸入策略名稱。");
+        return false;
+      }
+
+      if (strategies.some(x => x.id !== s.id && x.name === name)) {
+        setStatus("saveStatus", "已有相同名稱的策略，請改用其他名稱。");
+        return false;
+      }
+
+      s.name = name.slice(0, 40);
+      s.rules = readForm();
+      s.updatedAt = new Date().toISOString();
+
+      if (!persist()) {
+        if (showMessage) {
+          setStatus("saveStatus", "本次儲存失敗，請先匯出既有備份並檢查瀏覽器設定。");
+        }
+        return false;
+      }
+
+      renderStrategySelect();
+      updatePreview();
+
+      if (showMessage) {
+        setStatus("saveStatus", "策略已儲存：" + s.name);
+      }
+
+      return true;
+    }
+
+    function loadCurrent() {
+      const s = currentStrategy();
+      if (!s) return;
+
+      $("strategyName").value = s.name;
+      writeForm(s.rules);
+      setStatus("saveStatus", "目前策略：" + s.name);
+    }
+
+    function refreshCurrentFromForm() {
+      const s = currentStrategy();
+      if (!s) return;
+
+      const name = $("strategyName").value.trim();
 
       if (
-        $("minPrice").value === "" ||
-        $("maxPrice").value === "" ||
-        $("minChange").value === "" ||
-        $("maxChange").value === "" ||
-        $("minVolume").value === "" ||
-        !Number.isFinite(minPrice) ||
-        !Number.isFinite(maxPrice) ||
-        !Number.isFinite(minChange) ||
-        !Number.isFinite(maxChange) ||
-        !Number.isFinite(minVolume) ||
-        minPrice < 0 ||
-        maxPrice < minPrice ||
-        maxChange < minChange ||
-        minVolume < 0
+        name &&
+        !strategies.some(x => x.id !== s.id && x.name === name)
       ) {
-        $("summary").textContent =
-          "請檢查輸入數值：最低值不可大於最高值，股價及成交量不可為負數。";
+        s.name = name.slice(0, 40);
+      }
+
+      s.rules = readForm();
+      s.updatedAt = new Date().toISOString();
+
+      if (persist()) {
+        renderStrategySelect();
+        $("strategySelect").value = currentId;
+        setStatus("saveStatus", "變更已自動儲存。");
+      } else {
+        setStatus("saveStatus", "自動儲存失敗，請先匯出備份並檢查瀏覽器設定。");
+      }
+
+      updatePreview();
+    }
+
+    function createNewStrategy() {
+      if (!saveCurrent(false)) return;
+
+      const name = prompt("請輸入新策略名稱：", "新選股策略");
+      if (name === null) return;
+
+      const clean = name.trim().slice(0, 40);
+      if (!clean) {
+        alert("策略名稱不可空白。");
         return;
       }
 
-      $("summary").textContent = getRules();
+      if (strategies.some(s => s.name === clean)) {
+        alert("已有相同名稱的策略，請使用其他名稱。");
+        return;
+      }
+
+      const s = makeStrategy(clean);
+      strategies.push(s);
+      currentId = s.id;
+
+      if (!persist()) return;
+
+      renderStrategySelect();
+      loadCurrent();
+      setStatus("saveStatus", "已新增策略：" + clean);
     }
 
-    $("previewButton").addEventListener("click", updatePreview);
+    function duplicateStrategy() {
+      if (!saveCurrent(false)) return;
 
-    updatePreview();
+      const source = currentStrategy();
+      const suggested = source.name + " 副本";
+      const name = prompt("請輸入複製後的策略名稱：", suggested);
+
+      if (name === null) return;
+
+      const clean = name.trim().slice(0, 40);
+
+      if (!clean || strategies.some(s => s.name === clean)) {
+        alert("策略名稱不可空白，也不可與現有策略重複。");
+        return;
+      }
+
+      const s = makeStrategy(clean, source.rules);
+      strategies.push(s);
+      currentId = s.id;
+
+      if (!persist()) return;
+
+      renderStrategySelect();
+      loadCurrent();
+      setStatus("saveStatus", "已複製策略：" + clean);
+    }
+
+    function deleteStrategy() {
+      if (strategies.length <= 1) {
+        alert("至少需要保留一個策略。");
+        return;
+      }
+
+      const s = currentStrategy();
+
+      if (!confirm(`確定刪除策略「${s.name}」？此操作無法直接復原。`)) {
+        return;
+      }
+
+      const old = strategies;
+      strategies = strategies.filter(x => x.id !== currentId);
+      currentId = strategies[0].id;
+
+      if (!persist()) {
+        strategies = old;
+        return;
+      }
+
+      renderStrategySelect();
+      loadCurrent();
+      setStatus("saveStatus", "已刪除策略：" + s.name);
+    }
+
+    function exportBackup() {
+      if (!saveCurrent(false)) {
+        alert("目前條件尚未有效儲存，請先修正輸入內容。");
+        return;
+      }
+
+      const payload = {
+        app: "tw-stock-screener",
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        currentId,
+        strategies
+      };
+
+      const blob = new Blob(
+        [JSON.stringify(payload, null, 2)],
+        { type: "application/json;charset=utf-8" }
+      );
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "tw-stock-screener-backup.json";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      setStatus("backupStatus", "已產生 JSON 備份檔。請確認檔案已下載並妥善保存。");
+    }
+
+    function validateBackup(data) {
+      if (
+        !data ||
+        data.app !== "tw-stock-screener" ||
+        data.version !== 1 ||
+        !Array.isArray(data.strategies) ||
+        data.strategies.length === 0 ||
+        data.strategies.length > 200
+      ) {
+        throw new Error("備份檔格式不正確，或版本不相容。");
+      }
+
+      const names = new Set();
+      const ids = new Set();
+
+      const restored = data.strategies.map(s => {
+        if (!s || typeof s.name !== "string" || !s.name.trim()) {
+          throw new Error("備份內有無效的策略名稱。");
+        }
+
+        const name = s.name.trim().slice(0, 40);
+
+        if (names.has(name)) {
+          throw new Error("備份內有重複的策略名稱：" + name);
+        }
+
+        names.add(name);
+
+        const id = String(s.id || makeId());
+
+        if (ids.has(id)) {
+          throw new Error("備份內有重複的策略識別碼。");
+        }
+
+        ids.add(id);
+
+        const rules = normalizeRules(s.rules);
+        const error = validRules(rules);
+
+        if (error) {
+          throw new Error(`策略「${name}」：${error}`);
+        }
+
+        return {
+          id,
+          name,
+          rules,
+          updatedAt: String(s.updatedAt || "")
+        };
+      });
+
+      const selected = restored.some(s => s.id === data.currentId)
+        ? data.currentId
+        : restored[0].id;
+
+      return { strategies: restored, currentId: selected };
+    }
+
+    async function importBackup() {
+      const file = $("importFile").files[0];
+
+      if (!file) {
+        alert("請先選擇 JSON 備份檔。");
+        return;
+      }
+
+      if (!confirm("還原將取代目前瀏覽器內的所有策略。建議先匯出現有備份，確定要繼續嗎？")) {
+        return;
+      }
+
+      try {
+        const text = await file.text();
+        const parsed = JSON.parse(text);
+        const restored = validateBackup(parsed);
+
+        const oldStrategies = strategies;
+        const oldId = currentId;
+
+        strategies = restored.strategies;
+        currentId = restored.currentId;
+
+        if (!persist()) {
+          strategies = oldStrategies;
+          currentId = oldId;
+          alert("無法儲存還原結果，原有畫面資料已保留。請檢查瀏覽器儲存空間。");
+          return;
+        }
+
+        renderStrategySelect();
+        loadCurrent();
+
+        setStatus("backupStatus", "JSON 還原成功，共載入 " + strategies.length + " 個策略。");
+        setStatus("saveStatus", "已還原備份資料。");
+      } catch (error) {
+        alert("還原失敗：" + error.message);
+        setStatus("backupStatus", "還原失敗，原有策略未被取代。");
+      }
+    }
+
+    $("saveButton").addEventListener("click", () => saveCurrent(true));
+    $("newButton").addEventListener("click", createNewStrategy);
+    $("duplicateButton").addEventListener("click", duplicateStrategy);
+    $("deleteButton").addEventListener("click", deleteStrategy);
+    $("previewButton").addEventListener("click", updatePreview);
+    $("exportButton").addEventListener("click", exportBackup);
+    $("importButton").addEventListener("click", importBackup);
+
+    $("strategySelect").addEventListener("change", event => {
+      const nextId = event.target.value;
+      if (!strategies.some(s => s.id === nextId)) return;
+
+      currentId = nextId;
+
+      if (persist()) {
+        loadCurrent();
+      }
+    });
+
+    [
+      "strategyName", "market", "minPrice", "maxPrice",
+      "minChange", "maxChange", "minVolume",
+      "ma5", "ma20", "volumeSurge", "logic"
+    ].forEach(id => {
+      $(id).addEventListener("input", refreshCurrentFromForm);
+      $(id).addEventListener("change", refreshCurrentFromForm);
+    });
+
+    readStorage();
+    renderStrategySelect();
+    loadCurrent();
   </script>
 </body>
 </html>
