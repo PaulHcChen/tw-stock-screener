@@ -1,0 +1,131 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#16324f">
+  <meta name="description" content="個人台股選股工具">
+  <title>台股智慧選股</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: #f3f6fa;
+      color: #1f2937;
+    }
+
+    header {
+      background: #16324f;
+      color: white;
+      padding: 24px 18px;
+    }
+
+    header h1 {
+      margin: 0 0 8px;
+      font-size: 24px;
+    }
+
+    header p {
+      margin: 0;
+      font-size: 14px;
+      color: #dbeafe;
+    }
+
+    main {
+      max-width: 600px;
+      margin: auto;
+      padding: 18px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px #0000000c;
+    }
+
+    .card h2 {
+      font-size: 18px;
+      margin: 0 0 12px;
+    }
+
+    .status {
+      color: #64748b;
+      font-size: 14px;
+    }
+
+    .button {
+      display: block;
+      width: 100%;
+      border: 0;
+      border-radius: 10px;
+      padding: 13px;
+      background: #1769aa;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    footer {
+      text-align: center;
+      color: #64748b;
+      font-size: 12px;
+      padding: 12px 18px 28px;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>台股智慧選股</h1>
+    <p>依照自己的條件，找出符合規則的股票</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>行情狀態</h2>
+      <p class="status" id="marketStatus">
+        尚未連接行情資料，這是介面測試版本。
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>我的選股策略</h2>
+      <p>在這裡管理及執行自訂選股條件。</p>
+      <button class="button" id="strategyButton">
+        開始設定選股條件
+      </button>
+      <p class="status" id="strategyStatus">
+        目前尚未建立策略。
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>篩選結果</h2>
+      <p class="status">
+        完成行情資料介接後，這裡會顯示符合條件的股票。
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    台股智慧選股 PWA · Stage 1
+  </footer>
+
+  <script>
+    document
+      .getElementById("strategyButton")
+      .addEventListener("click", function () {
+        document.getElementById("strategyStatus").textContent =
+          "下一階段將加入可編輯、可儲存的選股條件。";
+      });
+  </script>
+</body>
+</html>
