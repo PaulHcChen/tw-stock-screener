@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -7,179 +6,64 @@
   <meta name="theme-color" content="#16324f">
   <meta name="description" content="個人台股選股工具">
   <title>台股智慧選股</title>
-
   <style>
     * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, sans-serif;
-      background: #f3f6fa;
-      color: #1f2937;
-    }
-
-    header {
-      background: #16324f;
-      color: white;
-      padding: 22px 18px;
-    }
-
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: #f3f6fa; color: #1f2937; }
+    header { background: #16324f; color: white; padding: 22px 18px; }
     header h1 { margin: 0 0 8px; font-size: 24px; }
     header p { margin: 0; font-size: 14px; color: #dbeafe; }
-
-    main {
-      max-width: 620px;
-      margin: auto;
-      padding: 16px;
-    }
-
-    .card {
-      background: white;
-      border-radius: 14px;
-      padding: 17px;
-      margin-bottom: 15px;
-      box-shadow: 0 2px 8px #0000000c;
-    }
-
+    main { max-width: 620px; margin: auto; padding: 16px; }
+    .card { background: white; border-radius: 14px; padding: 17px; margin-bottom: 15px; box-shadow: 0 2px 8px #0000000c; }
     h2 { font-size: 18px; margin: 0 0 15px; }
     h3 { font-size: 15px; margin: 0 0 10px; }
-
     .field { margin-bottom: 15px; }
-
-    .field label {
-      display: block;
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 7px;
-    }
-
-    input, select {
-      width: 100%;
-      min-width: 0;
-      padding: 11px;
-      border: 1px solid #cbd5e1;
-      border-radius: 9px;
-      background: white;
-      color: #1f2937;
-      font-size: 16px;
-    }
-
-    input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-      margin: 2px 0 0;
-      flex-shrink: 0;
-    }
-
-    .two {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    .check {
-      display: flex;
-      align-items: flex-start;
-      gap: 9px;
-      margin: 13px 0;
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
-    .button {
-      display: block;
-      width: 100%;
-      padding: 12px;
-      border: 0;
-      border-radius: 10px;
-      background: #1769aa;
-      color: white;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      margin-top: 9px;
-    }
-
-    .button.secondary {
-      background: #e8eef5;
-      color: #16324f;
-    }
-
-    .button.danger {
-      background: #fff0f0;
-      color: #a11b1b;
-    }
-
-    .button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .hint, .status {
-      font-size: 12px;
-      color: #64748b;
-      line-height: 1.7;
-    }
-
+    .field label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 7px; }
+    input, select { width: 100%; min-width: 0; padding: 11px; border: 1px solid #cbd5e1; border-radius: 9px; background: white; color: #1f2937; font-size: 16px; }
+    input[type="checkbox"] { width: 18px; height: 18px; margin: 2px 0 0; flex-shrink: 0; }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .check { display: flex; align-items: flex-start; gap: 9px; margin: 13px 0; font-size: 14px; line-height: 1.5; }
+    .button { display: block; width: 100%; padding: 12px; border: 0; border-radius: 10px; background: #1769aa; color: white; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 9px; }
+    .button.secondary { background: #e8eef5; color: #16324f; }
+    .button.danger { background: #fff0f0; color: #a11b1b; }
+    .button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .hint, .status { font-size: 12px; color: #64748b; line-height: 1.7; }
     .status { overflow-wrap: anywhere; }
-
-    .summary {
-      white-space: pre-line;
-      line-height: 1.8;
-      font-size: 14px;
-      overflow-wrap: anywhere;
-    }
-
-    footer {
-      text-align: center;
-      color: #64748b;
-      font-size: 12px;
-      padding: 12px 18px 28px;
-    }
+    .summary { white-space: pre-line; line-height: 1.8; font-size: 14px; overflow-wrap: anywhere; }
+    footer { text-align: center; color: #64748b; font-size: 12px; padding: 12px 18px 28px; }
   </style>
 </head>
-
 <body>
   <header>
     <h1>台股智慧選股</h1>
     <p>設定自己的條件，管理個人選股策略</p>
   </header>
-
   <main>
     <section class="card">
       <h2>資料狀態</h2>
-      <p class="status" id="dataStatus" aria-live="polite">
-        正在讀取本機策略資料……
-      </p>
-      <p class="hint">
-        策略資料儲存在目前瀏覽器的本機空間，不會自動上傳到 GitHub。
-      </p>
+      <p class="status" id="dataStatus" aria-live="polite">正在讀取本機策略資料……</p>
+      <p class="status" id="marketDataStatus" aria-live="polite">正在讀取行情資料……</p>
+      <p class="hint">策略資料儲存在目前瀏覽器的本機空間，不會自動上傳到 GitHub。行情資料則從本工具的公開 JSON 檔讀取。</p>
     </section>
 
     <section class="card">
       <h2>策略管理</h2>
-
       <div class="field">
         <label for="strategySelect">目前使用的策略</label>
         <select id="strategySelect"></select>
       </div>
-
       <div class="field">
         <label for="strategyName">策略名稱</label>
         <input id="strategyName" maxlength="40">
       </div>
-
       <button class="button" id="saveButton">儲存目前策略</button>
       <button class="button secondary" id="newButton">新增策略</button>
       <button class="button secondary" id="duplicateButton">複製目前策略</button>
       <button class="button danger" id="deleteButton">刪除目前策略</button>
-
       <p class="status" id="saveStatus" aria-live="polite"></p>
     </section>
 
     <section class="card">
       <h2>選股條件</h2>
-
       <div class="field">
         <label for="market">股票市場</label>
         <select id="market">
@@ -188,18 +72,14 @@
         </select>
         <p class="hint">目前只處理證交所上市股票，不包含上櫃股票。</p>
       </div>
-
       <div class="field">
         <label for="etfMode">ETF 篩選方式</label>
         <select id="etfMode">
           <option value="include">包含 ETF</option>
           <option value="exclude">排除 ETF，只篩選一般公司股票</option>
         </select>
-        <p class="hint">
-          這是選股規則設定。後續接上行情資料後，系統還需要可靠的股票類型資料，才能正確辨識 ETF。
-        </p>
+        <p class="hint">目前 ETF 選項會儲存於策略；真正篩選 ETF 尚待接入可靠的證券類型資料。</p>
       </div>
-
       <h3>股價條件（元）</h3>
       <div class="two">
         <div class="field">
@@ -211,7 +91,6 @@
           <input id="maxPrice" type="number" min="0" step="0.01">
         </div>
       </div>
-
       <h3>當日漲幅條件（%）</h3>
       <div class="two">
         <div class="field">
@@ -223,69 +102,43 @@
           <input id="maxChange" type="number" step="0.1">
         </div>
       </div>
-
       <div class="field">
         <label for="minVolume">最低成交量（張）</label>
         <input id="minVolume" type="number" min="0" step="1">
       </div>
-
       <h3>技術指標條件</h3>
-
-      <label class="check">
-        <input id="ma5" type="checkbox">
-        <span>股價高於 5 日均線</span>
-      </label>
-
-      <label class="check">
-        <input id="ma20" type="checkbox">
-        <span>股價高於 20 日均線</span>
-      </label>
-
-      <label class="check">
-        <input id="volumeSurge" type="checkbox">
-        <span>成交量高於過去 20 個交易日平均量</span>
-      </label>
-
+      <label class="check"><input id="ma5" type="checkbox"><span>股價高於 5 日均線</span></label>
+      <label class="check"><input id="ma20" type="checkbox"><span>股價高於 20 日均線</span></label>
+      <label class="check"><input id="volumeSurge" type="checkbox"><span>成交量高於過去 20 個交易日平均量</span></label>
       <div class="field">
         <label for="logic">條件組合方式</label>
         <select id="logic">
           <option value="AND">AND：所有條件都必須符合</option>
           <option value="OR">OR：至少一個條件符合</option>
         </select>
-        <p class="hint">
-          AND 要求所有條件符合；OR 則只要求至少一項符合。
-        </p>
+        <p class="hint">AND 要求所有條件符合；OR 則只要求至少一項符合。</p>
       </div>
-
       <button class="button" id="previewButton">更新條件預覽</button>
     </section>
 
     <section class="card">
       <h2>條件預覽</h2>
       <div id="summary" class="summary"></div>
-      <p class="status">
-        目前只預覽選股條件，尚未連接真實行情或篩選股票。
-      </p>
+      <p class="status">目前只預覽選股條件，尚未連接真正的股票篩選功能。</p>
     </section>
 
     <section class="card">
       <h2>策略備份與還原</h2>
-      <p class="hint">
-        匯出所有策略為 JSON 檔案。還原會以備份內容取代目前瀏覽器內的全部策略。
-      </p>
-
+      <p class="hint">匯出所有策略為 JSON 檔案。還原會以備份內容取代目前瀏覽器內的全部策略。</p>
       <button class="button" id="exportButton">匯出 JSON 備份</button>
-
       <div class="field" style="margin-top:16px">
         <label for="importFile">選擇 JSON 備份檔</label>
         <input id="importFile" type="file" accept=".json,application/json">
       </div>
-
       <button class="button secondary" id="importButton">還原 JSON 備份</button>
       <p class="status" id="backupStatus" aria-live="polite"></p>
     </section>
   </main>
-
   <footer>台股智慧選股 PWA · Stage 2</footer>
 
   <script>
@@ -295,97 +148,55 @@
     const $ = id => document.getElementById(id);
 
     const DEFAULT_RULES = {
-      market: "all",
-      etfMode: "include",
-      minPrice: "20",
-      maxPrice: "200",
-      minChange: "2",
-      maxChange: "7",
-      minVolume: "1000",
-      ma5: false,
-      ma20: true,
-      volumeSurge: true,
-      logic: "AND"
+      market: "all", etfMode: "include",
+      minPrice: "20", maxPrice: "200",
+      minChange: "2", maxChange: "7", minVolume: "1000",
+      ma5: false, ma20: true, volumeSurge: true, logic: "AND"
     };
 
     let strategies = [];
     let currentId = "";
 
     function makeId() {
-      if (window.crypto && crypto.randomUUID) {
-        return crypto.randomUUID();
-      }
-      return "s-" + Date.now() + "-" +
-        Math.random().toString(36).slice(2, 10);
+      if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+      return "s-" + Date.now() + "-" + Math.random().toString(36).slice(2, 10);
     }
 
     function makeStrategy(name, rules = DEFAULT_RULES) {
-      return {
-        id: makeId(),
-        name,
-        rules: { ...rules },
-        updatedAt: new Date().toISOString()
-      };
+      return { id: makeId(), name, rules: { ...rules }, updatedAt: new Date().toISOString() };
     }
 
-    function setStatus(id, message) {
-      $(id).textContent = message;
-    }
+    function setStatus(id, message) { $(id).textContent = message; }
 
     function normalizeRules(r) {
       r = r || {};
-
       return {
-        market: ["all", "listed"].includes(r.market)
-          ? r.market : "all",
+        market: ["all", "listed"].includes(r.market) ? r.market : "all",
         etfMode: r.etfMode === "exclude" ? "exclude" : "include",
         minPrice: String(r.minPrice ?? "20"),
         maxPrice: String(r.maxPrice ?? "200"),
         minChange: String(r.minChange ?? "2"),
         maxChange: String(r.maxChange ?? "7"),
         minVolume: String(r.minVolume ?? "1000"),
-        ma5: r.ma5 === true,
-        ma20: r.ma20 === true,
+        ma5: r.ma5 === true, ma20: r.ma20 === true,
         volumeSurge: r.volumeSurge === true,
         logic: r.logic === "OR" ? "OR" : "AND"
       };
     }
 
     function validRules(r) {
-      const fields = [
-        r.minPrice, r.maxPrice, r.minChange,
-        r.maxChange, r.minVolume
-      ];
-
-      if (fields.some(v => v === "" || !Number.isFinite(Number(v)))) {
-        return "請填妥所有數值欄位。";
-      }
-
-      if (Number(r.minPrice) < 0 ||
-          Number(r.maxPrice) < Number(r.minPrice)) {
-        return "股價範圍不正確。";
-      }
-
-      if (Number(r.maxChange) < Number(r.minChange)) {
-        return "漲幅範圍不正確。";
-      }
-
-      if (Number(r.minVolume) < 0) {
-        return "成交量不可為負數。";
-      }
-
+      const fields = [r.minPrice, r.maxPrice, r.minChange, r.maxChange, r.minVolume];
+      if (fields.some(v => v === "" || !Number.isFinite(Number(v)))) return "請填妥所有數值欄位。";
+      if (Number(r.minPrice) < 0 || Number(r.maxPrice) < Number(r.minPrice)) return "股價範圍不正確。";
+      if (Number(r.maxChange) < Number(r.minChange)) return "漲幅範圍不正確。";
+      if (Number(r.minVolume) < 0) return "成交量不可為負數。";
       return "";
     }
 
     function persist() {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({
-          version: 1,
-          currentId,
-          strategies
-        }));
-
-        setStatus("dataStatus", "本機儲存正常。行情尚未連線。");
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, currentId, strategies }));
+        setStatus("dataStatus", "本機策略儲存正常。");
         return true;
       } catch (error) {
         setStatus("dataStatus", "儲存失敗，請先匯出備份並檢查瀏覽器儲存空間。");
@@ -396,175 +207,132 @@
     function readStorage() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
-
         if (!raw) {
           const first = makeStrategy("我的選股策略");
-          strategies = [first];
-          currentId = first.id;
-          persist();
-          return;
+          strategies = [first]; currentId = first.id; persist(); return;
         }
-
         const data = JSON.parse(raw);
-
-        if (!data || data.version !== 1 ||
-            !Array.isArray(data.strategies) ||
-            data.strategies.length === 0) {
+        if (!data || data.version !== 1 || !Array.isArray(data.strategies) || data.strategies.length === 0) {
           throw new Error("資料格式不正確");
         }
-
         strategies = data.strategies.map(s => ({
-          id: String(s.id),
-          name: String(s.name || "未命名策略").slice(0, 40),
-          rules: normalizeRules(s.rules),
-          updatedAt: String(s.updatedAt || "")
+          id: String(s.id), name: String(s.name || "未命名策略").slice(0, 40),
+          rules: normalizeRules(s.rules), updatedAt: String(s.updatedAt || "")
         }));
-
-        currentId = strategies.some(s => s.id === data.currentId)
-          ? data.currentId
-          : strategies[0].id;
-
+        currentId = strategies.some(s => s.id === data.currentId) ? data.currentId : strategies[0].id;
         setStatus("dataStatus", "已載入本機策略資料。");
       } catch (error) {
         strategies = [makeStrategy("我的選股策略")];
         currentId = strategies[0].id;
-        setStatus("dataStatus",
-          "無法正常讀取舊資料。請先確認是否有 JSON 備份，不要急著覆寫。");
+        setStatus("dataStatus", "無法正常讀取舊資料。請先確認是否有 JSON 備份，不要急著覆寫。");
       }
     }
 
-    function currentStrategy() {
-      return strategies.find(s => s.id === currentId);
+    async function loadMarketData() {
+      const status = $("marketDataStatus");
+      status.textContent = "正在讀取行情 JSON……";
+      try {
+        const response = await fetch("./data/stocks.json?t=" + Date.now(), { cache: "no-store" });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const data = await response.json();
+        if (!data || data.source !== "TWSE" || !Array.isArray(data.stocks) || !data.dataDate) {
+          throw new Error("行情 JSON 格式不符合預期");
+        }
+        const date = String(data.dataDate);
+        const rocYear = Number(date.slice(0, 3));
+        const displayDate = date.length === 7 && Number.isFinite(rocYear)
+          ? `${rocYear + 1911}/${date.slice(3, 5)}/${date.slice(5, 7)}`
+          : date;
+        let updatedText = data.updatedAt || "未提供";
+        if (data.updatedAt) {
+          const parsed = new Date(data.updatedAt);
+          if (!Number.isNaN(parsed.getTime())) updatedText = parsed.toLocaleString("zh-TW", { timeZone: "Asia/Taipei" });
+        }
+        status.textContent =
+          `行情載入成功｜交易日期：${displayDate}（民國 ${date}）｜證券筆數：${data.stocks.length}｜最後更新：${updatedText}。目前僅載入資料，尚未執行選股。`;
+      } catch (error) {
+        status.textContent = "行情讀取失敗：" + error.message + "。請稍後重試或檢查 GitHub Pages 部署狀態。";
+      }
     }
+
+    function currentStrategy() { return strategies.find(s => s.id === currentId); }
 
     function renderStrategySelect() {
       const select = $("strategySelect");
       select.replaceChildren();
-
       strategies.forEach(s => {
         const option = document.createElement("option");
-        option.value = s.id;
-        option.textContent = s.name;
-        select.appendChild(option);
+        option.value = s.id; option.textContent = s.name; select.appendChild(option);
       });
-
       select.value = currentId;
       $("deleteButton").disabled = strategies.length <= 1;
     }
 
     function readForm() {
       return {
-        market: $("market").value,
-        etfMode: $("etfMode").value,
-        minPrice: $("minPrice").value,
-        maxPrice: $("maxPrice").value,
-        minChange: $("minChange").value,
-        maxChange: $("maxChange").value,
-        minVolume: $("minVolume").value,
-        ma5: $("ma5").checked,
-        ma20: $("ma20").checked,
-        volumeSurge: $("volumeSurge").checked,
+        market: $("market").value, etfMode: $("etfMode").value,
+        minPrice: $("minPrice").value, maxPrice: $("maxPrice").value,
+        minChange: $("minChange").value, maxChange: $("maxChange").value,
+        minVolume: $("minVolume").value, ma5: $("ma5").checked,
+        ma20: $("ma20").checked, volumeSurge: $("volumeSurge").checked,
         logic: $("logic").value
       };
     }
 
     function writeForm(rules) {
       const r = normalizeRules(rules);
-
-      $("market").value = r.market;
-      $("etfMode").value = r.etfMode;
-      $("minPrice").value = r.minPrice;
-      $("maxPrice").value = r.maxPrice;
-      $("minChange").value = r.minChange;
-      $("maxChange").value = r.maxChange;
-      $("minVolume").value = r.minVolume;
-      $("ma5").checked = r.ma5;
-      $("ma20").checked = r.ma20;
-      $("volumeSurge").checked = r.volumeSurge;
+      $("market").value = r.market; $("etfMode").value = r.etfMode;
+      $("minPrice").value = r.minPrice; $("maxPrice").value = r.maxPrice;
+      $("minChange").value = r.minChange; $("maxChange").value = r.maxChange;
+      $("minVolume").value = r.minVolume; $("ma5").checked = r.ma5;
+      $("ma20").checked = r.ma20; $("volumeSurge").checked = r.volumeSurge;
       $("logic").value = r.logic;
-
       updatePreview();
     }
 
     function updatePreview() {
       const r = readForm();
       const error = validRules(r);
-
-      if (error) {
-        $("summary").textContent = error;
-        return false;
-      }
-
+      if (error) { $("summary").textContent = error; return false; }
       const s = currentStrategy();
-
       const conditions = [
         `股價介於 ${r.minPrice}～${r.maxPrice} 元`,
         `當日漲幅介於 ${r.minChange}～${r.maxChange}%`,
         `成交量至少 ${r.minVolume} 張`,
-        r.etfMode === "include"
-          ? "包含 ETF"
-          : "排除 ETF"
+        r.etfMode === "include" ? "包含 ETF" : "排除 ETF"
       ];
-
       if (r.ma5) conditions.push("股價高於 5 日均線");
       if (r.ma20) conditions.push("股價高於 20 日均線");
       if (r.volumeSurge) conditions.push("成交量高於 20 日均量");
-
       $("summary").textContent = [
-        `策略名稱：${s.name}`,
-        "股票市場：上市股票",
+        `策略名稱：${s.name}`, "股票市場：上市股票",
         `ETF 設定：${r.etfMode === "include" ? "包含 ETF" : "排除 ETF"}`,
-        `條件組合：${r.logic}`,
-        "",
-        "條件清單：",
+        `條件組合：${r.logic}`, "", "條件清單：",
         ...conditions.map((v, i) => `${i + 1}. ${v}`)
       ].join("\n");
-
       return true;
     }
 
     function saveCurrent(showMessage = true) {
       const r = readForm();
       const error = validRules(r);
-
-      if (error) {
-        setStatus("saveStatus", error);
-        return false;
-      }
-
+      if (error) { setStatus("saveStatus", error); return false; }
       const s = currentStrategy();
       const name = $("strategyName").value.trim();
-
-      if (!name) {
-        setStatus("saveStatus", "策略名稱不可空白。");
-        return false;
-      }
-
+      if (!name) { setStatus("saveStatus", "策略名稱不可空白。"); return false; }
       if (strategies.some(x => x.id !== s.id && x.name === name)) {
-        setStatus("saveStatus", "策略名稱不可重複。");
-        return false;
+        setStatus("saveStatus", "策略名稱不可重複。"); return false;
       }
-
-      s.name = name.slice(0, 40);
-      s.rules = r;
-      s.updatedAt = new Date().toISOString();
-
+      s.name = name.slice(0, 40); s.rules = r; s.updatedAt = new Date().toISOString();
       if (!persist()) return false;
-
-      renderStrategySelect();
-      updatePreview();
-
-      if (showMessage) {
-        setStatus("saveStatus", "策略已儲存：" + s.name);
-      }
-
+      renderStrategySelect(); updatePreview();
+      if (showMessage) setStatus("saveStatus", "策略已儲存：" + s.name);
       return true;
     }
 
     function loadCurrent() {
       const s = currentStrategy();
       if (!s) return;
-
       $("strategyName").value = s.name;
       writeForm(s.rules);
       setStatus("saveStatus", "目前策略：" + s.name);
@@ -573,187 +341,95 @@
     function autoSave() {
       const s = currentStrategy();
       if (!s) return;
-
       const name = $("strategyName").value.trim();
-
-      if (name && !strategies.some(x => x.id !== s.id && x.name === name)) {
-        s.name = name.slice(0, 40);
-      }
-
-      s.rules = readForm();
-      s.updatedAt = new Date().toISOString();
-
+      if (name && !strategies.some(x => x.id !== s.id && x.name === name)) s.name = name.slice(0, 40);
+      s.rules = readForm(); s.updatedAt = new Date().toISOString();
       if (persist()) {
-        renderStrategySelect();
-        $("strategySelect").value = currentId;
+        renderStrategySelect(); $("strategySelect").value = currentId;
         setStatus("saveStatus", "變更已自動儲存。");
       }
-
       updatePreview();
     }
 
     function createNewStrategy() {
       if (!saveCurrent(false)) return;
-
       const name = prompt("請輸入新策略名稱：", "新選股策略");
       if (name === null) return;
-
       const clean = name.trim().slice(0, 40);
-
-      if (!clean || strategies.some(s => s.name === clean)) {
-        alert("名稱不可空白或與現有策略重複。");
-        return;
-      }
-
-      const s = makeStrategy(clean);
-      strategies.push(s);
-      currentId = s.id;
-
+      if (!clean || strategies.some(s => s.name === clean)) { alert("名稱不可空白或與現有策略重複。"); return; }
+      const s = makeStrategy(clean); strategies.push(s); currentId = s.id;
       if (!persist()) return;
-
-      renderStrategySelect();
-      loadCurrent();
+      renderStrategySelect(); loadCurrent();
     }
 
     function duplicateStrategy() {
       if (!saveCurrent(false)) return;
-
       const source = currentStrategy();
       const name = prompt("請輸入複製後的策略名稱：", source.name + " 副本");
       if (name === null) return;
-
       const clean = name.trim().slice(0, 40);
-
-      if (!clean || strategies.some(s => s.name === clean)) {
-        alert("名稱不可空白或與現有策略重複。");
-        return;
-      }
-
-      const copy = makeStrategy(clean, source.rules);
-      strategies.push(copy);
-      currentId = copy.id;
-
+      if (!clean || strategies.some(s => s.name === clean)) { alert("名稱不可空白或與現有策略重複。"); return; }
+      const copy = makeStrategy(clean, source.rules); strategies.push(copy); currentId = copy.id;
       if (!persist()) return;
-
-      renderStrategySelect();
-      loadCurrent();
+      renderStrategySelect(); loadCurrent();
     }
 
     function deleteStrategy() {
-      if (strategies.length <= 1) {
-        alert("至少要保留一個策略。");
-        return;
-      }
-
+      if (strategies.length <= 1) { alert("至少要保留一個策略。"); return; }
       const s = currentStrategy();
-
       if (!confirm(`確定刪除「${s.name}」？`)) return;
-
-      strategies = strategies.filter(x => x.id !== currentId);
-      currentId = strategies[0].id;
-
+      strategies = strategies.filter(x => x.id !== currentId); currentId = strategies[0].id;
       if (!persist()) return;
-
-      renderStrategySelect();
-      loadCurrent();
+      renderStrategySelect(); loadCurrent();
     }
 
     function exportBackup() {
       if (!saveCurrent(false)) return;
-
-      const payload = {
-        app: "tw-stock-screener",
-        version: 1,
-        exportedAt: new Date().toISOString(),
-        currentId,
-        strategies
-      };
-
-      const blob = new Blob(
-        [JSON.stringify(payload, null, 2)],
-        { type: "application/json;charset=utf-8" }
-      );
-
+      const payload = { app: "tw-stock-screener", version: 1, exportedAt: new Date().toISOString(), currentId, strategies };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
-      a.download = "tw-stock-screener-backup.json";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-
+      a.href = url; a.download = "tw-stock-screener-backup.json";
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
       setStatus("backupStatus", "備份檔已產生，請確認已下載。");
     }
 
     function validateBackup(data) {
-      if (!data || data.app !== "tw-stock-screener" ||
-          data.version !== 1 || !Array.isArray(data.strategies) ||
-          data.strategies.length === 0 || data.strategies.length > 200) {
+      if (!data || data.app !== "tw-stock-screener" || data.version !== 1 ||
+          !Array.isArray(data.strategies) || data.strategies.length === 0 || data.strategies.length > 200) {
         throw new Error("備份檔格式不正確。");
       }
-
-      const names = new Set();
-      const ids = new Set();
-
+      const names = new Set(); const ids = new Set();
       const restored = data.strategies.map(s => {
         const name = String(s.name || "").trim().slice(0, 40);
-        if (!name || names.has(name)) {
-          throw new Error("備份內有空白或重複的策略名稱。");
-        }
+        if (!name || names.has(name)) throw new Error("備份內有空白或重複的策略名稱。");
         names.add(name);
-
         const id = String(s.id || makeId());
         if (ids.has(id)) throw new Error("備份內有重複識別碼。");
         ids.add(id);
-
         const rules = normalizeRules(s.rules);
         const error = validRules(rules);
         if (error) throw new Error(`策略「${name}」：${error}`);
-
-        return {
-          id,
-          name,
-          rules,
-          updatedAt: String(s.updatedAt || "")
-        };
+        return { id, name, rules, updatedAt: String(s.updatedAt || "") };
       });
-
-      const selected = restored.some(s => s.id === data.currentId)
-        ? data.currentId
-        : restored[0].id;
-
+      const selected = restored.some(s => s.id === data.currentId) ? data.currentId : restored[0].id;
       return { strategies: restored, currentId: selected };
     }
 
     async function importBackup() {
       const file = $("importFile").files[0];
-
-      if (!file) {
-        alert("請先選擇 JSON 備份檔。");
-        return;
-      }
-
+      if (!file) { alert("請先選擇 JSON 備份檔。"); return; }
       if (!confirm("還原將取代目前所有策略，確定繼續嗎？")) return;
-
       try {
         const parsed = JSON.parse(await file.text());
         const restored = validateBackup(parsed);
-        const oldStrategies = strategies;
-        const oldId = currentId;
-
-        strategies = restored.strategies;
-        currentId = restored.currentId;
-
+        const oldStrategies = strategies; const oldId = currentId;
+        strategies = restored.strategies; currentId = restored.currentId;
         if (!persist()) {
-          strategies = oldStrategies;
-          currentId = oldId;
-          alert("儲存還原結果失敗，原有資料已保留。");
-          return;
+          strategies = oldStrategies; currentId = oldId;
+          alert("儲存還原結果失敗，原有資料已保留。"); return;
         }
-
-        renderStrategySelect();
-        loadCurrent();
+        renderStrategySelect(); loadCurrent();
         setStatus("backupStatus", "還原成功，共 " + strategies.length + " 個策略。");
       } catch (error) {
         alert("還原失敗：" + error.message);
@@ -768,17 +444,13 @@
     $("previewButton").addEventListener("click", updatePreview);
     $("exportButton").addEventListener("click", exportBackup);
     $("importButton").addEventListener("click", importBackup);
-
     $("strategySelect").addEventListener("change", event => {
       currentId = event.target.value;
       if (persist()) loadCurrent();
     });
 
-    [
-      "strategyName", "market", "etfMode", "minPrice", "maxPrice",
-      "minChange", "maxChange", "minVolume",
-      "ma5", "ma20", "volumeSurge", "logic"
-    ].forEach(id => {
+    ["strategyName", "market", "etfMode", "minPrice", "maxPrice", "minChange",
+     "maxChange", "minVolume", "ma5", "ma20", "volumeSurge", "logic"].forEach(id => {
       $(id).addEventListener("input", autoSave);
       $(id).addEventListener("change", autoSave);
     });
@@ -786,6 +458,7 @@
     readStorage();
     renderStrategySelect();
     loadCurrent();
+    loadMarketData();
   </script>
 </body>
 </html>
