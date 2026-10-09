@@ -1,1 +1,33 @@
 
+name: Test TWSE Stock API
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-api:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get TWSE daily stock data
+        run: |
+          python - <<'PY'
+          import json
+          import urllib.request
+
+          url = "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL"
+          request = urllib.request.Request(
+              url,
+              headers={"User-Agent": "Mozilla/5.0"}
+          )
+
+          with urllib.request.urlopen(request, timeout=30) as response:
+              data = json.loads(response.read().decode("utf-8"))
+
+          print("API request successful")
+          print("Records:", len(data))
+          print("Sample:", json.dumps(data[:3], ensure_ascii=False))
+          PY
+
