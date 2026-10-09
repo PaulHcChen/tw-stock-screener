@@ -9,9 +9,7 @@
   <title>台股智慧選股</title>
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -23,54 +21,100 @@
     header {
       background: #16324f;
       color: white;
-      padding: 24px 18px;
+      padding: 22px 18px;
     }
 
-    header h1 {
-      margin: 0 0 8px;
-      font-size: 24px;
-    }
-
-    header p {
-      margin: 0;
-      font-size: 14px;
-      color: #dbeafe;
-    }
+    header h1 { margin: 0 0 8px; font-size: 24px; }
+    header p { margin: 0; font-size: 14px; color: #dbeafe; }
 
     main {
-      max-width: 600px;
+      max-width: 620px;
       margin: auto;
-      padding: 18px;
+      padding: 16px;
     }
 
     .card {
       background: white;
       border-radius: 14px;
-      padding: 18px;
-      margin-bottom: 16px;
+      padding: 17px;
+      margin-bottom: 15px;
       box-shadow: 0 2px 8px #0000000c;
     }
 
-    .card h2 {
-      font-size: 18px;
-      margin: 0 0 12px;
+    h2 { font-size: 18px; margin: 0 0 15px; }
+    h3 { font-size: 15px; margin: 0 0 10px; }
+
+    .field { margin-bottom: 15px; }
+    .field label, .field-title {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 7px;
     }
 
-    .status {
-      color: #64748b;
+    input, select {
+      width: 100%;
+      min-width: 0;
+      padding: 11px;
+      border: 1px solid #cbd5e1;
+      border-radius: 9px;
+      background: white;
+      color: #1f2937;
+      font-size: 16px;
+    }
+
+    .two {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .check {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      margin: 13px 0;
       font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .check input {
+      width: 18px;
+      height: 18px;
+      margin: 2px 0 0;
+      flex-shrink: 0;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #64748b;
+      line-height: 1.6;
     }
 
     .button {
       display: block;
       width: 100%;
+      padding: 13px;
       border: 0;
       border-radius: 10px;
-      padding: 13px;
       background: #1769aa;
       color: white;
       font-size: 16px;
       font-weight: 600;
+      cursor: pointer;
+    }
+
+    .summary {
+      white-space: pre-line;
+      line-height: 1.8;
+      font-size: 14px;
+      overflow-wrap: anywhere;
+    }
+
+    .status {
+      color: #64748b;
+      font-size: 13px;
+      line-height: 1.6;
     }
 
     footer {
@@ -85,47 +129,207 @@
 <body>
   <header>
     <h1>台股智慧選股</h1>
-    <p>依照自己的條件，找出符合規則的股票</p>
+    <p>設定自己的條件，篩選符合規則的股票</p>
   </header>
 
   <main>
     <section class="card">
       <h2>行情狀態</h2>
-      <p class="status" id="marketStatus">
-        尚未連接行情資料，這是介面測試版本。
+      <p class="status">
+        尚未連接行情資料。目前僅提供條件設定與預覽。
       </p>
     </section>
 
     <section class="card">
-      <h2>我的選股策略</h2>
-      <p>在這裡管理及執行自訂選股條件。</p>
-      <button class="button" id="strategyButton">
-        開始設定選股條件
+      <h2>選股策略設定</h2>
+
+      <div class="field">
+        <label for="strategyName">策略名稱</label>
+        <input id="strategyName" value="我的選股策略"
+          maxlength="40">
+      </div>
+
+      <div class="field">
+        <label for="market">股票市場</label>
+        <select id="market">
+          <option value="all">上市＋上櫃</option>
+          <option value="listed">上市</option>
+          <option value="otc">上櫃</option>
+        </select>
+      </div>
+
+      <h3>股價條件（元）</h3>
+      <div class="two">
+        <div class="field">
+          <label for="minPrice">最低股價</label>
+          <input id="minPrice" type="number"
+            min="0" step="0.01" value="20">
+        </div>
+        <div class="field">
+          <label for="maxPrice">最高股價</label>
+          <input id="maxPrice" type="number"
+            min="0" step="0.01" value="200">
+        </div>
+      </div>
+
+      <h3>當日漲幅條件（%）</h3>
+      <div class="two">
+        <div class="field">
+          <label for="minChange">最低漲幅</label>
+          <input id="minChange" type="number"
+            step="0.1" value="2">
+        </div>
+        <div class="field">
+          <label for="maxChange">最高漲幅</label>
+          <input id="maxChange" type="number"
+            step="0.1" value="7">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="minVolume">最低成交量（張）</label>
+        <input id="minVolume" type="number"
+          min="0" step="1" value="1000">
+      </div>
+
+      <h3>技術指標條件</h3>
+
+      <label class="check">
+        <input id="ma5" type="checkbox">
+        <span>股價高於 5 日均線</span>
+      </label>
+
+      <label class="check">
+        <input id="ma20" type="checkbox" checked>
+        <span>股價高於 20 日均線</span>
+      </label>
+
+      <label class="check">
+        <input id="volumeSurge" type="checkbox" checked>
+        <span>成交量高於過去 20 個交易日平均量</span>
+      </label>
+
+      <div class="field">
+        <label for="logic">條件組合方式</label>
+        <select id="logic">
+          <option value="AND">AND：所有啟用條件都必須符合</option>
+          <option value="OR">OR：至少一個啟用條件符合</option>
+        </select>
+        <p class="hint">
+          此設定將套用到本頁所有啟用的選股條件。
+          OR 模式可能篩出較多股票。
+        </p>
+      </div>
+
+      <button class="button" id="previewButton">
+        更新選股規則預覽
       </button>
-      <p class="status" id="strategyStatus">
-        目前尚未建立策略。
+    </section>
+
+    <section class="card">
+      <h2>選股規則預覽</h2>
+      <div id="summary" class="summary"></div>
+      <p class="status">
+        注意：這裡顯示的是條件設定，不是真實選股結果。
+        尚未連接行情資料。
       </p>
     </section>
 
     <section class="card">
       <h2>篩選結果</h2>
       <p class="status">
-        完成行情資料介接後，這裡會顯示符合條件的股票。
+        完成行情介接後，這裡會列出符合條件的股票。
       </p>
     </section>
   </main>
 
-  <footer>
-    台股智慧選股 PWA · Stage 1
-  </footer>
+  <footer>台股智慧選股 PWA · Stage 1</footer>
 
   <script>
-    document
-      .getElementById("strategyButton")
-      .addEventListener("click", function () {
-        document.getElementById("strategyStatus").textContent =
-          "下一階段將加入可編輯、可儲存的選股條件。";
-      });
+    const $ = id => document.getElementById(id);
+
+    function getRules() {
+      const conditions = [];
+
+      conditions.push(
+        `股價介於 ${$("minPrice").value}～${$("maxPrice").value} 元`
+      );
+
+      conditions.push(
+        `當日漲幅介於 ${$("minChange").value}～${$("maxChange").value}%`
+      );
+
+      conditions.push(
+        `成交量至少 ${$("minVolume").value} 張`
+      );
+
+      if ($("ma5").checked) {
+        conditions.push("股價高於 5 日均線");
+      }
+
+      if ($("ma20").checked) {
+        conditions.push("股價高於 20 日均線");
+      }
+
+      if ($("volumeSurge").checked) {
+        conditions.push("成交量高於 20 日均量");
+      }
+
+      const marketNames = {
+        all: "上市＋上櫃",
+        listed: "上市",
+        otc: "上櫃"
+      };
+
+      const logicNames = {
+        AND: "所有條件都必須符合（AND）",
+        OR: "至少一個條件符合（OR）"
+      };
+
+      return [
+        `策略名稱：${$("strategyName").value || "未命名策略"}`,
+        `股票市場：${marketNames[$("market").value]}`,
+        `組合方式：${logicNames[$("logic").value]}`,
+        "",
+        "條件清單：",
+        ...conditions.map((item, i) => `${i + 1}. ${item}`)
+      ].join("\n");
+    }
+
+    function updatePreview() {
+      const minPrice = Number($("minPrice").value);
+      const maxPrice = Number($("maxPrice").value);
+      const minChange = Number($("minChange").value);
+      const maxChange = Number($("maxChange").value);
+      const minVolume = Number($("minVolume").value);
+
+      if (
+        $("minPrice").value === "" ||
+        $("maxPrice").value === "" ||
+        $("minChange").value === "" ||
+        $("maxChange").value === "" ||
+        $("minVolume").value === "" ||
+        !Number.isFinite(minPrice) ||
+        !Number.isFinite(maxPrice) ||
+        !Number.isFinite(minChange) ||
+        !Number.isFinite(maxChange) ||
+        !Number.isFinite(minVolume) ||
+        minPrice < 0 ||
+        maxPrice < minPrice ||
+        maxChange < minChange ||
+        minVolume < 0
+      ) {
+        $("summary").textContent =
+          "請檢查輸入數值：最低值不可大於最高值，股價及成交量不可為負數。";
+        return;
+      }
+
+      $("summary").textContent = getRules();
+    }
+
+    $("previewButton").addEventListener("click", updatePreview);
+
+    updatePreview();
   </script>
 </body>
 </html>
