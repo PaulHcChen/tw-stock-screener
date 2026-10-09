@@ -1,1 +1,65 @@
 
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>選股行情資料測試</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 16px;
+      line-height: 1.6;
+      overflow-wrap: anywhere;
+    }
+    pre {
+      white-space: pre-wrap;
+      background: #f2f2f2;
+      padding: 12px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h2>選股行情資料測試</h2>
+  <p id="status">正在讀取資料……</p>
+  <pre id="result"></pre>
+
+  <script>
+    async function testData() {
+      const status = document.getElementById("status");
+      const result = document.getElementById("result");
+
+      try {
+        const url = "./data/stocks.json?t=" + Date.now();
+        const response = await fetch(url, { cache: "no-store" });
+
+        if (!response.ok) {
+          throw new Error("HTTP " + response.status);
+        }
+
+        const data = await response.json();
+
+        if (!Array.isArray(data.stocks)) {
+          throw new Error("JSON 格式不正確：找不到 stocks 陣列");
+        }
+
+        status.textContent =
+          "成功！資料日期：" + data.dataDate +
+          "；證券筆數：" + data.count;
+
+        result.textContent = JSON.stringify(
+          data.stocks.slice(0, 3), null, 2
+        );
+      } catch (error) {
+        status.textContent = "讀取失敗：" + error.message;
+        result.textContent =
+          "請確認 data/stocks.json 已存在，且 GitHub Pages 已部署最新版本。";
+      }
+    }
+
+    testData();
+  </script>
+</body>
+</html>
+
