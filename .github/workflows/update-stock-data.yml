@@ -1,8 +1,11 @@
 
 name: Test TWSE Stock API
 
-on:
+on: 
   workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/update-stock-data.yml"
 
 permissions:
   contents: read
@@ -30,4 +33,3 @@ jobs:
           print("Records:", len(data))
           print("Sample:", json.dumps(data[:3], ensure_ascii=False))
           PY
-
