@@ -1,23 +1,30 @@
-name: Test TWSE Stock API
 
-on: 
+name: Update TWSE Stock Data
+
+on:
   workflow_dispatch:
-  push:
-    paths:
-      - ".github/workflows/update-stock-data.yml"
+  schedule:
+    - cron: "30 8 * * 1-5"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  test-api:
+  update-stock-data:
     runs-on: ubuntu-latest
     steps:
-      - name: Get TWSE daily stock data
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch TWSE daily stock data
         run: |
+          mkdir -p data
           python - <<'PY'
           import json
+          import os
           import urllib.request
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
 
           url = "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL"
           request = urllib.request.Request(
@@ -25,10 +32,66 @@ jobs:
               headers={"User-Agent": "Mozilla/5.0"}
           )
 
-          with urllib.request.urlopen(request, timeout=30) as response:
-              data = json.loads(response.read().decode("utf-8"))
+          with urllib.request.urlopen(request, timeout=60) as response:
+              records = json.loads(response.read().decode("utf-8"))
+
+          if not isinstance(records, list) or not records:
+              raise RuntimeError("API returned no stock records")
+
+          required = [
+              "Date", "Code", "Name", "ClosingPrice",
+              "TradeVolume", "Change"
+          ]
+
+          for item in records:
+              if not all(key in item for key in required):
+                  raise RuntimeError("Unexpected API data format")
+
+          dates = {
+              item["Date"]
+              for item in records
+              if item.get("Date")
+          }
+
+          if len(dates) != 1:
+              raise RuntimeError(
+                  "Inconsistent trading dates: " + str(sorted(dates))
+              )
+
+          data_date = next(iter(dates))
+          now = datetime.now(ZoneInfo("Asia/Taipei"))
+
+          output = {
+              "source": "TWSE",
+              "dataDate": data_date,
+              "updatedAt": now.isoformat(),
+              "count": len(records),
+              "stocks": records
+          }
+
+          path = "data/stocks.json"
+          with open(path, "w", encoding="utf-8") as file:
+              json.dump(
+                  output, file,
+                  ensure_ascii=False,
+                  indent=2
+              )
+              file.write("\n")
 
           print("API request successful")
-          print("Records:", len(data))
-          print("Sample:", json.dumps(data[:3], ensure_ascii=False))
+          print("Data date:", data_date)
+          print("Records:", len(records))
+          print("Saved to:", path)
           PY
+
+      - name: Commit updated data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/stocks.json
+          if git diff --cached --quiet; then
+            echo "No data changes to commit."
+          else
+            git commit -m "Update TWSE stock data"
+            git push
+          fi
