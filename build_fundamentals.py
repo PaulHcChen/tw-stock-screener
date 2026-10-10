@@ -2,6 +2,7 @@
 import json
 import os
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone, timedelta
@@ -10,7 +11,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 OUTPUT_FILE = DATA_DIR / "fundamentals.json"
-
 API_URL = "https://api.finmindtrade.com/api/v4/data"
 TZ_TAIPEI = timezone(timedelta(hours=8))
 
@@ -23,37 +23,38 @@ def request_dataset(dataset, code, token):
     params = {
         "dataset": dataset,
         "data_id": code,
+        "token": token,
     }
     url = API_URL + "?" + urllib.parse.urlencode(params)
-
     request = urllib.request.Request(
         url,
-        headers={
-            "Authorization": f"Bearer {token}",
-            "User-Agent": "tw-stock-screener",
-        },
+        headers={"User-Agent": "tw-stock-screener"},
     )
 
-    with urllib.request.urlopen(request, timeout=30) as response:
-        result = json.loads(response.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            result = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        # 不輸出 URL、Token 或完整請求內容。
+        raise RuntimeError(f"HTTP status {exc.code}") from None
 
     if result.get("status") != 200:
-        raise RuntimeError(f"FinMind API error: {dataset}")
+        raise RuntimeError(
+            f"FinMind API returned status {result.get('status')}"
+        )
 
     if not isinstance(result.get("data"), list):
-        raise RuntimeError(f"Unexpected response: {dataset}")
+        raise RuntimeError("Unexpected API response format")
 
     return result["data"]
 
 
 def main():
     token = os.environ.get("FINMIND_API_TOKEN", "").strip()
-
     if not token:
         print("ERROR: FINMIND_API_TOKEN is missing.")
         return 1
 
-    # 第一輪只測試一檔股票，避免大量 API 請求。
     code = "2330"
     datasets = [
         "TaiwanStockFinancialStatements",
@@ -75,8 +76,7 @@ def main():
             print(f"PASS: {dataset}, rows={len(rows)}")
 
     except Exception as exc:
-        # 不輸出網址、Token 或完整例外內容。
-        print(f"ERROR: API test failed ({type(exc).__name__}).")
+        print(f"ERROR: API test failed: {str(exc)}")
         return 1
 
     output = {
