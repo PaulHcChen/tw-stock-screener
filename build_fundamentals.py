@@ -23,7 +23,7 @@ def request_dataset(dataset, code, token):
     params = {
         "dataset": dataset,
         "data_id": code,
-        "token": token,
+        "start_date": "2025-01-01",
     }
     url = API_URL + "?" + urllib.parse.urlencode(params)
     request = urllib.request.Request(
