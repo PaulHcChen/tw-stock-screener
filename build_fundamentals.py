@@ -100,7 +100,9 @@ def select_samples(dataset, rows):
             row for row in rows
             if str(row.get("type", "")) in target_types
         ]
-        return matched[-5:]
+        if matched:
+            return matched[-5:]
+        return rows[-5:]
 
     if dataset == "TaiwanStockMonthRevenue":
         return rows[-3:]
