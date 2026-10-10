@@ -116,7 +116,7 @@
           <option value="AND">AND：所有條件都必須符合</option>
           <option value="OR">OR：至少一個條件符合</option>
         </select>
-        <p class="hint">AND 要求所有條件符合；OR 則只要求至少一項符合。</p>
+        <p class="hint">AND：股價範圍、漲跌幅範圍、最低成交量三組條件都必須符合。OR：三組條件至少一組符合。均線與 20 日均量需歷史資料，目前勾選時會停止執行。</p>
       </div>
       <button class="button" id="previewButton">更新條件預覽</button>
     </section>
@@ -342,17 +342,23 @@
           volumeShares,
           volumeLots: volumeShares / 1000
         };
-      }).filter(item =>
-        item.code &&
-        Number.isFinite(item.price) &&
-        Number.isFinite(item.changePercent) &&
-        Number.isFinite(item.volumeShares) &&
-        item.price >= minPrice &&
-        item.price <= maxPrice &&
-        item.changePercent >= minChange &&
-        item.changePercent <= maxChange &&
-        item.volumeShares >= minVolumeShares
-      );
+      }).filter(item => {
+        // Ignore records that cannot be displayed or evaluated reliably.
+        if (!item.code || !Number.isFinite(item.price) ||
+            !Number.isFinite(item.changePercent) || !Number.isFinite(item.volumeShares)) {
+          return false;
+        }
+
+        const priceMatch = item.price >= minPrice && item.price <= maxPrice;
+        const changeMatch = item.changePercent >= minChange && item.changePercent <= maxChange;
+        const volumeMatch = item.volumeShares >= minVolumeShares;
+
+        // AND: all supported condition groups must match.
+        // OR: at least one supported condition group must match.
+        return rules.logic === "OR"
+          ? (priceMatch || changeMatch || volumeMatch)
+          : (priceMatch && changeMatch && volumeMatch);
+      });
 
       candidates.sort((a, b) => b.changePercent - a.changePercent);
       const displayed = candidates.slice(0, 300);
@@ -380,7 +386,7 @@
         ? `${Number(date.slice(0, 3)) + 1911}/${date.slice(3, 5)}/${date.slice(5, 7)}`
         : date;
 
-      status.textContent = `選股完成：符合 ${candidates.length} 檔。行情日期：${displayDate}。`;
+      status.textContent = `選股完成：${rules.logic} 條件組合，符合 ${candidates.length} 檔。行情日期：${displayDate}。`;
       resultsSummary.textContent = candidates.length > displayed.length
         ? `以下顯示漲幅較高的前 ${displayed.length} 檔，共符合 ${candidates.length} 檔。`
         : `共顯示 ${displayed.length} 檔符合條件的證券。`;
