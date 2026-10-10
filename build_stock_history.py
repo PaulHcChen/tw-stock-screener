@@ -10,7 +10,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parent
 OUTPUT = ROOT / "data" / "stock_history.json"
 BASE_URL = "https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX"
 TARGET_DAYS = 60
