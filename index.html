@@ -78,7 +78,7 @@
           <option value="include">包含 ETF</option>
           <option value="exclude">排除 ETF，只篩選一般公司股票</option>
         </select>
-        <p class="hint">目前 ETF 選項會儲存於策略；真正篩選 ETF 尚待接入可靠的證券類型資料。</p>
+        <p class="hint">目前每日行情資料沒有可靠的證券類型欄位，因此 ETF 包含／排除設定暫不套用到結果；確認分類資料來源後再啟用。</p>
       </div>
       <h3>股價條件（元）</h3>
       <div class="two">
@@ -124,7 +124,27 @@
     <section class="card">
       <h2>條件預覽</h2>
       <div id="summary" class="summary"></div>
-      <p class="status">目前只預覽選股條件，尚未連接真正的股票篩選功能。</p>
+      <p class="status">目前以最新單日行情篩選股價、漲跌幅及成交量。5 日／20 日均線與 20 日均量需要歷史資料，現階段不會套用；ETF 分類也尚未套用。</p>
+    </section>
+
+    <section class="card">
+      <h2>選股結果</h2>
+      <p class="status" id="screenStatus" aria-live="polite">尚未執行選股。</p>
+      <button class="button" id="runScreenButton">執行選股</button>
+      <div id="resultsSummary" class="summary" style="margin-top:12px"></div>
+      <div style="overflow-x:auto">
+        <table id="resultsTable" style="width:100%;border-collapse:collapse;font-size:13px;display:none">
+          <thead><tr>
+            <th style="text-align:left;padding:8px;border-bottom:1px solid #cbd5e1">代號</th>
+            <th style="text-align:left;padding:8px;border-bottom:1px solid #cbd5e1">名稱</th>
+            <th style="text-align:right;padding:8px;border-bottom:1px solid #cbd5e1">收盤價</th>
+            <th style="text-align:right;padding:8px;border-bottom:1px solid #cbd5e1">漲跌幅</th>
+            <th style="text-align:right;padding:8px;border-bottom:1px solid #cbd5e1">成交量（張）</th>
+          </tr></thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+      </div>
+      <p class="hint">結果只根據可用的單日行情欄位計算。若勾選均線或 20 日均量條件，系統會提示這些條件尚未實作，避免誤把不完整結果當成完整選股。</p>
     </section>
 
     <section class="card">
@@ -156,6 +176,7 @@
 
     let strategies = [];
     let currentId = "";
+    let marketData = null;
 
     function makeId() {
       if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
@@ -238,6 +259,7 @@
         if (!data || data.source !== "TWSE" || !Array.isArray(data.stocks) || !data.dataDate) {
           throw new Error("行情 JSON 格式不符合預期");
         }
+        marketData = data;
         const date = String(data.dataDate);
         const rocYear = Number(date.slice(0, 3));
         const displayDate = date.length === 7 && Number.isFinite(rocYear)
@@ -252,6 +274,119 @@
           `行情載入成功｜交易日期：${displayDate}（民國 ${date}）｜證券筆數：${data.stocks.length}｜最後更新：${updatedText}。目前僅載入資料，尚未執行選股。`;
       } catch (error) {
         status.textContent = "行情讀取失敗：" + error.message + "。請稍後重試或檢查 GitHub Pages 部署狀態。";
+      }
+    }
+
+    function toNumber(value) {
+      if (value === null || value === undefined || value === "") return NaN;
+      const cleaned = String(value).replace(/,/g, "").trim();
+      if (!cleaned || cleaned === "--" || cleaned === "-") return NaN;
+      return Number(cleaned);
+    }
+
+    function calculateChangePercent(item) {
+      const closing = toNumber(item.ClosingPrice);
+      const change = toNumber(item.Change);
+      if (!Number.isFinite(closing) || !Number.isFinite(change)) return NaN;
+      const previousClose = closing - change;
+      if (previousClose <= 0) return NaN;
+      return (change / previousClose) * 100;
+    }
+
+    function runScreen() {
+      const status = $("screenStatus");
+      const resultsSummary = $("resultsSummary");
+      const table = $("resultsTable");
+      const tbody = $("resultsBody");
+      tbody.replaceChildren();
+      table.style.display = "none";
+      resultsSummary.textContent = "";
+
+      if (!marketData || !Array.isArray(marketData.stocks)) {
+        status.textContent = "尚無可用行情資料，請重新整理網頁後再試。";
+        return;
+      }
+
+      const rules = readForm();
+      const validationError = validRules(rules);
+      if (validationError) {
+        status.textContent = validationError;
+        return;
+      }
+
+      if (rules.ma5 || rules.ma20 || rules.volumeSurge) {
+        status.textContent = "尚未執行：目前勾選了需要歷史行情的條件。請先取消 5 日均線、20 日均線及 20 日均量條件，或等待歷史資料功能完成。";
+        return;
+      }
+
+      if (rules.etfMode === "exclude") {
+        status.textContent = "尚未執行：目前沒有可靠的 ETF 類型欄位，無法安全地套用「排除 ETF」。請暫時選擇「包含 ETF」，或等待 ETF 分類資料功能完成。";
+        return;
+      }
+
+      const minPrice = Number(rules.minPrice);
+      const maxPrice = Number(rules.maxPrice);
+      const minChange = Number(rules.minChange);
+      const maxChange = Number(rules.maxChange);
+      const minVolumeShares = Number(rules.minVolume) * 1000;
+
+      const candidates = marketData.stocks.map(item => {
+        const price = toNumber(item.ClosingPrice);
+        const changePercent = calculateChangePercent(item);
+        const volumeShares = toNumber(item.TradeVolume);
+        return {
+          code: String(item.Code || ""),
+          name: String(item.Name || ""),
+          price,
+          changePercent,
+          volumeShares,
+          volumeLots: volumeShares / 1000
+        };
+      }).filter(item =>
+        item.code &&
+        Number.isFinite(item.price) &&
+        Number.isFinite(item.changePercent) &&
+        Number.isFinite(item.volumeShares) &&
+        item.price >= minPrice &&
+        item.price <= maxPrice &&
+        item.changePercent >= minChange &&
+        item.changePercent <= maxChange &&
+        item.volumeShares >= minVolumeShares
+      );
+
+      candidates.sort((a, b) => b.changePercent - a.changePercent);
+      const displayed = candidates.slice(0, 300);
+
+      for (const item of displayed) {
+        const row = document.createElement("tr");
+        const values = [
+          item.code, item.name, item.price.toFixed(2),
+          (item.changePercent >= 0 ? "+" : "") + item.changePercent.toFixed(2) + "%",
+          Math.floor(item.volumeLots).toLocaleString("zh-TW")
+        ];
+        values.forEach((value, index) => {
+          const cell = document.createElement("td");
+          cell.textContent = value;
+          cell.style.padding = "8px";
+          cell.style.borderBottom = "1px solid #e2e8f0";
+          if (index >= 2) cell.style.textAlign = "right";
+          row.appendChild(cell);
+        });
+        tbody.appendChild(row);
+      }
+
+      const date = String(marketData.dataDate || "");
+      const displayDate = date.length === 7
+        ? `${Number(date.slice(0, 3)) + 1911}/${date.slice(3, 5)}/${date.slice(5, 7)}`
+        : date;
+
+      status.textContent = `選股完成：符合 ${candidates.length} 檔。行情日期：${displayDate}。`;
+      resultsSummary.textContent = candidates.length > displayed.length
+        ? `以下顯示漲幅較高的前 ${displayed.length} 檔，共符合 ${candidates.length} 檔。`
+        : `共顯示 ${displayed.length} 檔符合條件的證券。`;
+      table.style.display = displayed.length ? "table" : "none";
+      if (candidates.length === 0) {
+        resultsSummary.textContent = "目前沒有證券符合條件。你可以調整股價、漲幅或成交量範圍後重新執行。";
       }
     }
 
@@ -442,6 +577,7 @@
     $("duplicateButton").addEventListener("click", duplicateStrategy);
     $("deleteButton").addEventListener("click", deleteStrategy);
     $("previewButton").addEventListener("click", updatePreview);
+    $("runScreenButton").addEventListener("click", runScreen);
     $("exportButton").addEventListener("click", exportBackup);
     $("importButton").addEventListener("click", importBackup);
     $("strategySelect").addEventListener("change", event => {
