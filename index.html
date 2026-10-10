@@ -30,6 +30,7 @@
     .status { overflow-wrap: anywhere; }
     .summary { white-space: pre-line; line-height: 1.8; font-size: 14px; overflow-wrap: anywhere; }
     footer { text-align: center; color: #64748b; font-size: 12px; padding: 12px 18px 28px; }
+    .metric { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; margin: 8px 0; font-size: 13px; }
   </style>
 </head>
 <body>
@@ -42,7 +43,8 @@
       <h2>資料狀態</h2>
       <p class="status" id="dataStatus" aria-live="polite">正在讀取本機策略資料……</p>
       <p class="status" id="marketDataStatus" aria-live="polite">正在讀取行情資料……</p>
-      <p class="hint">策略資料儲存在目前瀏覽器的本機空間，不會自動上傳到 GitHub。行情資料則從本工具的公開 JSON 檔讀取。</p>
+      <p class="status" id="historyDataStatus" aria-live="polite">正在讀取歷史行情資料……</p>
+      <p class="hint">策略資料儲存在目前瀏覽器的本機空間，不會自動上傳到 GitHub。行情與歷史行情從本工具的公開 JSON 檔讀取。</p>
     </section>
 
     <section class="card">
@@ -78,7 +80,7 @@
           <option value="include">包含 ETF</option>
           <option value="exclude">排除 ETF，只篩選一般公司股票</option>
         </select>
-        <p class="hint">目前每日行情資料沒有可靠的證券類型欄位，因此 ETF 包含／排除設定暫不套用到結果；確認分類資料來源後再啟用。</p>
+        <p class="hint">目前每日行情資料沒有可靠的證券類型欄位，因此 ETF 包含／排除設定暫不套用到結果。</p>
       </div>
       <h3>股價條件（元）</h3>
       <div class="two">
@@ -107,16 +109,21 @@
         <input id="minVolume" type="number" min="0" step="1">
       </div>
       <h3>技術指標條件</h3>
-      <label class="check"><input id="ma5" type="checkbox"><span>股價高於 5 日均線</span></label>
-      <label class="check"><input id="ma20" type="checkbox"><span>股價高於 20 日均線</span></label>
+      <label class="check"><input id="ma5" type="checkbox"><span>股價高於 5 日均線（MA5）</span></label>
+      <label class="check"><input id="ma20" type="checkbox"><span>股價高於 20 日均線（MA20）</span></label>
       <label class="check"><input id="volumeSurge" type="checkbox"><span>成交量高於過去 20 個交易日平均量</span></label>
+      <div class="field">
+        <label for="volumeSurgeMultiple">成交量放大倍數門檻</label>
+        <input id="volumeSurgeMultiple" type="number" min="1" max="20" step="0.1" value="1">
+        <p class="hint">例如 1.5 代表最新成交量至少是前 20 個交易日平均成交量的 1.5 倍。此門檻只有勾選「成交量高於過去 20 個交易日平均量」時才會套用。</p>
+      </div>
       <div class="field">
         <label for="logic">條件組合方式</label>
         <select id="logic">
-          <option value="AND">AND：所有條件都必須符合</option>
-          <option value="OR">OR：至少一個條件符合</option>
+          <option value="AND">AND：所有已啟用條件都必須符合</option>
+          <option value="OR">OR：至少一個已啟用條件符合</option>
         </select>
-        <p class="hint">AND：股價範圍、漲跌幅範圍、最低成交量三組條件都必須符合。OR：三組條件至少一組符合。均線與 20 日均量需歷史資料，目前勾選時會停止執行。</p>
+        <p class="hint">股價、漲幅、成交量、均線及放量條件都會依 AND／OR 組合。空白的股價／漲幅欄位仍需填寫數值。</p>
       </div>
       <button class="button" id="previewButton">更新條件預覽</button>
     </section>
@@ -124,7 +131,7 @@
     <section class="card">
       <h2>條件預覽</h2>
       <div id="summary" class="summary"></div>
-      <p class="status">目前以最新單日行情篩選股價、漲跌幅及成交量。5 日／20 日均線與 20 日均量需要歷史資料，現階段不會套用；ETF 分類也尚未套用。</p>
+      <p class="status">MA5／MA20 使用歷史收盤價計算；量比以最新成交量除以前 20 個交易日平均量，避免將當日成交量納入基準平均。</p>
     </section>
 
     <section class="card">
@@ -140,11 +147,14 @@
             <th style="text-align:right;padding:8px;border-bottom:1px solid #cbd5e1">收盤價</th>
             <th style="text-align:right;padding:8px;border-bottom:1px solid #cbd5e1">漲跌幅</th>
             <th style="text-align:right;padding:8px;border-bottom:1px solid #cbd5e1">成交量（張）</th>
+            <th style="text-align:right;padding:8px;border-bottom:1px solid #cbd5e1">MA5</th>
+            <th style="text-align:right;padding:8px;border-bottom:1px solid #cbd5e1">MA20</th>
+            <th style="text-align:right;padding:8px;border-bottom:1px solid #cbd5e1">量比</th>
           </tr></thead>
           <tbody id="resultsBody"></tbody>
         </table>
       </div>
-      <p class="hint">結果只根據可用的單日行情欄位計算。若勾選均線或 20 日均量條件，系統會提示這些條件尚未實作，避免誤把不完整結果當成完整選股。</p>
+      <p class="hint">最多顯示符合條件且漲幅較高的前 300 檔。歷史資料不足的股票不會被視為符合已勾選的技術指標條件。</p>
     </section>
 
     <section class="card">
@@ -159,7 +169,7 @@
       <p class="status" id="backupStatus" aria-live="polite"></p>
     </section>
   </main>
-  <footer>台股智慧選股 PWA · Stage 2</footer>
+  <footer>台股智慧選股 PWA · Stage 3.2 歷史指標</footer>
 
   <script>
     "use strict";
@@ -171,12 +181,14 @@
       market: "all", etfMode: "include",
       minPrice: "20", maxPrice: "200",
       minChange: "2", maxChange: "7", minVolume: "1000",
-      ma5: false, ma20: true, volumeSurge: true, logic: "AND"
+      ma5: false, ma20: true, volumeSurge: true, volumeSurgeMultiple: "1", logic: "AND"
     };
 
     let strategies = [];
     let currentId = "";
     let marketData = null;
+    let historyData = null;
+    let historyByCode = new Map();
 
     function makeId() {
       if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
@@ -201,16 +213,18 @@
         minVolume: String(r.minVolume ?? "1000"),
         ma5: r.ma5 === true, ma20: r.ma20 === true,
         volumeSurge: r.volumeSurge === true,
+        volumeSurgeMultiple: String(r.volumeSurgeMultiple ?? "1"),
         logic: r.logic === "OR" ? "OR" : "AND"
       };
     }
 
     function validRules(r) {
-      const fields = [r.minPrice, r.maxPrice, r.minChange, r.maxChange, r.minVolume];
+      const fields = [r.minPrice, r.maxPrice, r.minChange, r.maxChange, r.minVolume, r.volumeSurgeMultiple];
       if (fields.some(v => v === "" || !Number.isFinite(Number(v)))) return "請填妥所有數值欄位。";
       if (Number(r.minPrice) < 0 || Number(r.maxPrice) < Number(r.minPrice)) return "股價範圍不正確。";
       if (Number(r.maxChange) < Number(r.minChange)) return "漲幅範圍不正確。";
       if (Number(r.minVolume) < 0) return "成交量不可為負數。";
+      if (Number(r.volumeSurgeMultiple) < 1 || Number(r.volumeSurgeMultiple) > 20) return "成交量放大倍數必須介於 1 到 20。";
       return "";
     }
 
@@ -249,6 +263,14 @@
       }
     }
 
+    function displayRocDate(date) {
+      const s = String(date || "");
+      const digits = s.replace(/\D/g, "");
+      if (digits.length === 7) return `${Number(digits.slice(0, 3)) + 1911}/${digits.slice(3, 5)}/${digits.slice(5, 7)}`;
+      if (digits.length === 8) return `${digits.slice(0, 4)}/${digits.slice(4, 6)}/${digits.slice(6, 8)}`;
+      return s;
+    }
+
     async function loadMarketData() {
       const status = $("marketDataStatus");
       status.textContent = "正在讀取行情 JSON……";
@@ -260,18 +282,13 @@
           throw new Error("行情 JSON 格式不符合預期");
         }
         marketData = data;
-        const date = String(data.dataDate);
-        const rocYear = Number(date.slice(0, 3));
-        const displayDate = date.length === 7 && Number.isFinite(rocYear)
-          ? `${rocYear + 1911}/${date.slice(3, 5)}/${date.slice(5, 7)}`
-          : date;
         let updatedText = data.updatedAt || "未提供";
         if (data.updatedAt) {
           const parsed = new Date(data.updatedAt);
           if (!Number.isNaN(parsed.getTime())) updatedText = parsed.toLocaleString("zh-TW", { timeZone: "Asia/Taipei" });
         }
         status.textContent =
-          `行情載入成功｜交易日期：${displayDate}（民國 ${date}）｜證券筆數：${data.stocks.length}｜最後更新：${updatedText}。目前僅載入資料，尚未執行選股。`;
+          `行情載入成功｜交易日期：${displayRocDate(data.dataDate)}｜證券筆數：${data.stocks.length}｜最後更新：${updatedText}。`;
       } catch (error) {
         status.textContent = "行情讀取失敗：" + error.message + "。請稍後重試或檢查 GitHub Pages 部署狀態。";
       }
@@ -291,6 +308,122 @@
       const previousClose = closing - change;
       if (previousClose <= 0) return NaN;
       return (change / previousClose) * 100;
+    }
+
+    function normalizeHistoryDate(value) {
+      const s = String(value ?? "").replace(/\D/g, "");
+      if (s.length === 8) return s;
+      if (s.length === 7) return String(Number(s.slice(0, 3) + 1911)).padStart(4, "0") + s.slice(3);
+      return String(value ?? "");
+    }
+
+    function parseHistoryData(data) {
+      // Supported history JSON layouts:
+      // { records: [{date, code, close, volumeShares}, ...] }
+      // { records: { "YYYYMMDD": [{code, close, volumeShares}, ...] } }
+      // { history: [{date, code, close, volumeShares}, ...] }
+      const records = [];
+      const raw = Array.isArray(data.records) ? data.records : Array.isArray(data.history) ? data.history : null;
+      if (raw) {
+        for (const item of raw) {
+          const date = normalizeHistoryDate(item.date ?? item.tradingDate ?? item.Date);
+          const code = String(item.code ?? item.Code ?? item.stockCode ?? "");
+          const close = toNumber(item.close ?? item.ClosingPrice ?? item.closePrice);
+          const volume = toNumber(item.volumeShares ?? item.volume ?? item.TradeVolume ?? item.volume_shares);
+          if (date && code && Number.isFinite(close) && close > 0 && Number.isFinite(volume) && volume >= 0) {
+            records.push({ date, code, close, volume });
+          }
+        }
+      } else if (data.records && typeof data.records === "object") {
+        for (const [rawDate, dayItems] of Object.entries(data.records)) {
+          if (!Array.isArray(dayItems)) continue;
+          const date = normalizeHistoryDate(rawDate);
+          for (const item of dayItems) {
+            const code = String(item.code ?? item.Code ?? item.stockCode ?? "");
+            const close = toNumber(item.close ?? item.ClosingPrice ?? item.closePrice);
+            const volume = toNumber(item.volumeShares ?? item.volume ?? item.TradeVolume ?? item.volume_shares);
+            if (date && code && Number.isFinite(close) && close > 0 && Number.isFinite(volume) && volume >= 0) {
+              records.push({ date, code, close, volume });
+            }
+          }
+        }
+      }
+      // Also support a flat array at data.stocks when each item has a date.
+      if (!records.length && Array.isArray(data.stocks)) {
+        for (const item of data.stocks) {
+          const date = normalizeHistoryDate(item.date ?? item.tradingDate ?? item.Date);
+          const code = String(item.code ?? item.Code ?? item.stockCode ?? "");
+          const close = toNumber(item.close ?? item.ClosingPrice ?? item.closePrice);
+          const volume = toNumber(item.volumeShares ?? item.volume ?? item.TradeVolume ?? item.volume_shares);
+          if (date && code && Number.isFinite(close) && close > 0 && Number.isFinite(volume) && volume >= 0) {
+            records.push({ date, code, close, volume });
+          }
+        }
+      }
+      return records;
+    }
+
+    async function loadHistoryData() {
+      const status = $("historyDataStatus");
+      status.textContent = "正在讀取歷史行情 JSON……";
+      try {
+        const response = await fetch("./data/stock_history.json?t=" + Date.now(), { cache: "no-store" });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const data = await response.json();
+        if (!data || typeof data !== "object") throw new Error("歷史行情 JSON 格式不正確");
+
+        const records = parseHistoryData(data);
+        if (!records.length) {
+          throw new Error("已下載檔案，但找不到可辨識的歷史紀錄欄位；請檢查 JSON 欄位格式");
+        }
+
+        const byCode = new Map();
+        const dates = new Set();
+        for (const record of records) {
+          dates.add(record.date);
+          if (!byCode.has(record.code)) byCode.set(record.code, []);
+          byCode.get(record.code).push(record);
+        }
+        for (const [code, rows] of byCode) {
+          rows.sort((a, b) => a.date.localeCompare(b.date));
+          // Deduplicate by date, keeping the last encountered row for each stock/date.
+          const deduped = new Map();
+          for (const row of rows) deduped.set(row.date, row);
+          byCode.set(code, [...deduped.values()].sort((a, b) => a.date.localeCompare(b.date)));
+        }
+        historyByCode = byCode;
+        historyData = data;
+        const dateCount = Number(data.tradingDateCount) || dates.size;
+        const latest = data.latestDate || [...dates].sort().at(-1) || "未知";
+        const recordCount = Number(data.recordCount) || records.length;
+        status.textContent = `歷史行情載入成功｜最新日期：${displayRocDate(latest)}｜交易日數：${dateCount}｜JSON 紀錄數：${recordCount}｜可計算股票數：${byCode.size}。`;
+      } catch (error) {
+        historyData = null;
+        historyByCode = new Map();
+        status.textContent = "歷史行情讀取失敗：" + error.message + "。均線與量比條件暫時無法使用。";
+      }
+    }
+
+    function getTechnicalMetrics(code) {
+      const rows = historyByCode.get(code) || [];
+      if (!rows.length) return { ma5: NaN, ma20: NaN, avgVolume20: NaN, volumeRatio: NaN, historyCount: 0 };
+      const last = rows[rows.length - 1];
+      const priorRows = rows.filter(row => row.date < last.date);
+      const last5 = rows.slice(-5);
+      const last20 = rows.slice(-20);
+      const prior20 = priorRows.slice(-20);
+      const average = arr => arr.length ? arr.reduce((sum, row) => sum + row.close, 0) / arr.length : NaN;
+      const avgVol = arr => arr.length ? arr.reduce((sum, row) => sum + row.volume, 0) / arr.length : NaN;
+      const avgVolume20 = avgVol(prior20);
+      const latestVolume = last.volume;
+      return {
+        ma5: last5.length === 5 ? average(last5) : NaN,
+        ma20: last20.length === 20 ? average(last20) : NaN,
+        avgVolume20: prior20.length === 20 ? avgVolume20 : NaN,
+        volumeRatio: prior20.length === 20 && avgVolume20 > 0 ? latestVolume / avgVolume20 : NaN,
+        historyCount: rows.length,
+        historyLatestDate: last.date
+      };
     }
 
     function runScreen() {
@@ -314,13 +447,13 @@
         return;
       }
 
-      if (rules.ma5 || rules.ma20 || rules.volumeSurge) {
-        status.textContent = "尚未執行：目前勾選了需要歷史行情的條件。請先取消 5 日均線、20 日均線及 20 日均量條件，或等待歷史資料功能完成。";
+      if (rules.etfMode === "exclude") {
+        status.textContent = "尚未執行：目前沒有可靠的 ETF 類型欄位，無法安全地套用「排除 ETF」。請暫時選擇「包含 ETF」。";
         return;
       }
 
-      if (rules.etfMode === "exclude") {
-        status.textContent = "尚未執行：目前沒有可靠的 ETF 類型欄位，無法安全地套用「排除 ETF」。請暫時選擇「包含 ETF」，或等待 ETF 分類資料功能完成。";
+      if ((rules.ma5 || rules.ma20 || rules.volumeSurge) && !historyData) {
+        status.textContent = "尚未執行：歷史行情資料未成功載入。請先確認歷史行情狀態，或取消技術指標條件。";
         return;
       }
 
@@ -329,35 +462,42 @@
       const minChange = Number(rules.minChange);
       const maxChange = Number(rules.maxChange);
       const minVolumeShares = Number(rules.minVolume) * 1000;
+      const enabledGroups = [
+        { key: "price", label: "股價", enabled: true },
+        { key: "change", label: "漲跌幅", enabled: true },
+        { key: "volume", label: "成交量", enabled: true },
+        { key: "ma5", label: "MA5", enabled: rules.ma5 },
+        { key: "ma20", label: "MA20", enabled: rules.ma20 },
+        { key: "volumeSurge", label: "量比", enabled: rules.volumeSurge }
+      ].filter(x => x.enabled);
 
       const candidates = marketData.stocks.map(item => {
         const price = toNumber(item.ClosingPrice);
         const changePercent = calculateChangePercent(item);
         const volumeShares = toNumber(item.TradeVolume);
+        const code = String(item.Code || "");
+        const metrics = getTechnicalMetrics(code);
         return {
-          code: String(item.Code || ""),
-          name: String(item.Name || ""),
-          price,
-          changePercent,
-          volumeShares,
-          volumeLots: volumeShares / 1000
+          code, name: String(item.Name || ""), price, changePercent,
+          volumeShares, volumeLots: volumeShares / 1000,
+          ma5: metrics.ma5, ma20: metrics.ma20,
+          avgVolume20: metrics.avgVolume20, volumeRatio: metrics.volumeRatio,
+          historyCount: metrics.historyCount
         };
       }).filter(item => {
-        // Ignore records that cannot be displayed or evaluated reliably.
         if (!item.code || !Number.isFinite(item.price) ||
-            !Number.isFinite(item.changePercent) || !Number.isFinite(item.volumeShares)) {
-          return false;
-        }
+            !Number.isFinite(item.changePercent) || !Number.isFinite(item.volumeShares)) return false;
 
-        const priceMatch = item.price >= minPrice && item.price <= maxPrice;
-        const changeMatch = item.changePercent >= minChange && item.changePercent <= maxChange;
-        const volumeMatch = item.volumeShares >= minVolumeShares;
-
-        // AND: all supported condition groups must match.
-        // OR: at least one supported condition group must match.
-        return rules.logic === "OR"
-          ? (priceMatch || changeMatch || volumeMatch)
-          : (priceMatch && changeMatch && volumeMatch);
+        const matches = {
+          price: item.price >= minPrice && item.price <= maxPrice,
+          change: item.changePercent >= minChange && item.changePercent <= maxChange,
+          volume: item.volumeShares >= minVolumeShares,
+          ma5: Number.isFinite(item.ma5) && item.price > item.ma5,
+          ma20: Number.isFinite(item.ma20) && item.price > item.ma20,
+          volumeSurge: Number.isFinite(item.volumeRatio) && item.volumeRatio >= Number(rules.volumeSurgeMultiple)
+        };
+        const activeMatches = enabledGroups.map(group => matches[group.key]);
+        return rules.logic === "OR" ? activeMatches.some(Boolean) : activeMatches.every(Boolean);
       });
 
       candidates.sort((a, b) => b.changePercent - a.changePercent);
@@ -368,7 +508,10 @@
         const values = [
           item.code, item.name, item.price.toFixed(2),
           (item.changePercent >= 0 ? "+" : "") + item.changePercent.toFixed(2) + "%",
-          Math.floor(item.volumeLots).toLocaleString("zh-TW")
+          Math.floor(item.volumeLots).toLocaleString("zh-TW"),
+          Number.isFinite(item.ma5) ? item.ma5.toFixed(2) : "—",
+          Number.isFinite(item.ma20) ? item.ma20.toFixed(2) : "—",
+          Number.isFinite(item.volumeRatio) ? item.volumeRatio.toFixed(2) + "x" : "—"
         ];
         values.forEach((value, index) => {
           const cell = document.createElement("td");
@@ -381,15 +524,13 @@
         tbody.appendChild(row);
       }
 
-      const date = String(marketData.dataDate || "");
-      const displayDate = date.length === 7
-        ? `${Number(date.slice(0, 3)) + 1911}/${date.slice(3, 5)}/${date.slice(5, 7)}`
-        : date;
-
-      status.textContent = `選股完成：${rules.logic} 條件組合，符合 ${candidates.length} 檔。行情日期：${displayDate}。`;
+      status.textContent = `選股完成：${rules.logic} 條件組合，符合 ${candidates.length} 檔。行情日期：${displayRocDate(marketData.dataDate)}。`;
       resultsSummary.textContent = candidates.length > displayed.length
         ? `以下顯示漲幅較高的前 ${displayed.length} 檔，共符合 ${candidates.length} 檔。`
         : `共顯示 ${displayed.length} 檔符合條件的證券。`;
+      if (rules.ma5 || rules.ma20 || rules.volumeSurge) {
+        resultsSummary.textContent += "\n技術指標依每檔股票自身可用的歷史紀錄計算；歷史不足 5／20 個交易日的股票不符合相應技術指標條件。";
+      }
       table.style.display = displayed.length ? "table" : "none";
       if (candidates.length === 0) {
         resultsSummary.textContent = "目前沒有證券符合條件。你可以調整股價、漲幅或成交量範圍後重新執行。";
@@ -416,6 +557,7 @@
         minChange: $("minChange").value, maxChange: $("maxChange").value,
         minVolume: $("minVolume").value, ma5: $("ma5").checked,
         ma20: $("ma20").checked, volumeSurge: $("volumeSurge").checked,
+        volumeSurgeMultiple: $("volumeSurgeMultiple").value,
         logic: $("logic").value
       };
     }
@@ -427,6 +569,7 @@
       $("minChange").value = r.minChange; $("maxChange").value = r.maxChange;
       $("minVolume").value = r.minVolume; $("ma5").checked = r.ma5;
       $("ma20").checked = r.ma20; $("volumeSurge").checked = r.volumeSurge;
+      $("volumeSurgeMultiple").value = r.volumeSurgeMultiple;
       $("logic").value = r.logic;
       updatePreview();
     }
@@ -444,10 +587,10 @@
       ];
       if (r.ma5) conditions.push("股價高於 5 日均線");
       if (r.ma20) conditions.push("股價高於 20 日均線");
-      if (r.volumeSurge) conditions.push("成交量高於 20 日均量");
+      if (r.volumeSurge) conditions.push(`成交量至少為前 20 日均量的 ${r.volumeSurgeMultiple} 倍`);
       $("summary").textContent = [
-        `策略名稱：${s.name}`, "股票市場：上市股票",
-        `ETF 設定：${r.etfMode === "include" ? "包含 ETF" : "排除 ETF"}`,
+        `策略名稱：${s ? s.name : "未選擇"}`, "股票市場：上市股票",
+        `ETF 設定：${r.etfMode === "include" ? "包含 ETF" : "排除 ETF（目前不支援分類）"}`,
         `條件組合：${r.logic}`, "", "條件清單：",
         ...conditions.map((v, i) => `${i + 1}. ${v}`)
       ].join("\n");
@@ -459,6 +602,7 @@
       const error = validRules(r);
       if (error) { setStatus("saveStatus", error); return false; }
       const s = currentStrategy();
+      if (!s) { setStatus("saveStatus", "找不到目前策略。"); return false; }
       const name = $("strategyName").value.trim();
       if (!name) { setStatus("saveStatus", "策略名稱不可空白。"); return false; }
       if (strategies.some(x => x.id !== s.id && x.name === name)) {
@@ -592,7 +736,7 @@
     });
 
     ["strategyName", "market", "etfMode", "minPrice", "maxPrice", "minChange",
-     "maxChange", "minVolume", "ma5", "ma20", "volumeSurge", "logic"].forEach(id => {
+     "maxChange", "minVolume", "ma5", "ma20", "volumeSurge", "volumeSurgeMultiple", "logic"].forEach(id => {
       $(id).addEventListener("input", autoSave);
       $(id).addEventListener("change", autoSave);
     });
@@ -601,6 +745,7 @@
     renderStrategySelect();
     loadCurrent();
     loadMarketData();
+    loadHistoryData();
   </script>
 </body>
 </html>
