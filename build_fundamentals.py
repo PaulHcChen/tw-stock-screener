@@ -94,15 +94,37 @@ def request_dataset(dataset, token):
 
 
 def select_samples(dataset, rows):
+    if dataset == "TaiwanStockCashFlowsStatement":
+        matched = [
+            row for row in rows
+            if (
+                "OperatingActivities" in str(row.get("type", ""))
+                or "營業活動" in str(row.get("origin_name", ""))
+            )
+        ]
+
+        if matched:
+            return matched[-10:]
+
+        # 找不到時，列出所有不同的現金流項目，
+        # 方便確認 API 真正使用的名稱。
+        unique_rows = {}
+        for row in rows:
+            key = (
+                row.get("type"),
+                row.get("origin_name"),
+            )
+            unique_rows[key] = row
+
+        return list(unique_rows.values())
+
     if dataset in TARGET_TYPES:
         target_types = TARGET_TYPES[dataset]
         matched = [
             row for row in rows
             if str(row.get("type", "")) in target_types
         ]
-        if matched:
-            return matched[-5:]
-        return rows[-5:]
+        return matched[-5:]
 
     if dataset == "TaiwanStockMonthRevenue":
         return rows[-3:]
