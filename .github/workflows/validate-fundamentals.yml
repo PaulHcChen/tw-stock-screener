@@ -31,3 +31,7 @@ jobs:
       - name: Check fundamentals data quality
         run: python check_fundamentals_quality.py
 
+      - name: Audit financial statement periods
+        run: python audit_fundamentals_periods.py
+        
+
