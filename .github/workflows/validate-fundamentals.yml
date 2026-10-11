@@ -36,6 +36,10 @@ jobs:
         
       - name: Compare revised fundamentals calculations
         run: python calculate_fundamentals_compare.py
+        
+      - name: Verify TSMC Q2 2026 official figures
+        run: python verify_tsmc_q2_2026.py
+
 
         
 
