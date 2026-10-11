@@ -1,131 +1,179 @@
 
 import json
 import os
+import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+DATA_DIR = ROOT / "data"
+OUTPUT_FILE = DATA_DIR / "fundamentals_raw_test.json"
 
 API_URL = "https://api.finmindtrade.com/api/v4/data"
-CODE = "2330"
+TZ_TAIPEI = timezone(timedelta(hours=8))
+
+TEST_CODE = "2330"
 START_DATE = "2024-01-01"
-TZ = timezone(timedelta(hours=8))
+
+DATASETS = [
+    "TaiwanStockFinancialStatements",
+    "TaiwanStockBalanceSheet",
+    "TaiwanStockCashFlowsStatement",
+    "TaiwanStockMonthRevenue",
+    "TaiwanStockPER",
+]
 
 
-def fetch(dataset, token):
+def now_text():
+    return datetime.now(TZ_TAIPEI).isoformat(timespec="seconds")
+
+
+def request_dataset(dataset, token):
     params = {
         "dataset": dataset,
-        "data_id": CODE,
+        "data_id": TEST_CODE,
         "start_date": START_DATE,
         "token": token,
     }
+
     url = API_URL + "?" + urllib.parse.urlencode(params)
     request = urllib.request.Request(
         url,
         headers={"User-Agent": "tw-stock-screener"},
     )
 
-    with urllib.request.urlopen(request, timeout=45) as response:
-        result = json.loads(response.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(request, timeout=45) as response:
+            result = json.loads(
+                response.read().decode("utf-8")
+            )
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", "replace")
+        try:
+            detail = json.loads(body)
+        except (json.JSONDecodeError, ValueError):
+            detail = {}
+        message = str(detail.get("msg", ""))[:200]
+        raise RuntimeError(
+            f"{dataset}: HTTP {exc.code}; {message}"
+        ) from None
 
     if result.get("status") != 200:
         raise RuntimeError(
-            f"{dataset}: API status {result.get('status')}"
+            f"{dataset}: API status {result.get('status')}; "
+            f"{str(result.get('msg', ''))[:200]}"
         )
 
-    return result["data"]
+    rows = result.get("data")
+    if not isinstance(rows, list):
+        raise RuntimeError(
+            f"{dataset}: unexpected response format"
+        )
+
+    return rows
 
 
 def main():
     token = os.environ.get("FINMIND_API_TOKEN", "").strip()
     if not token:
-        raise RuntimeError("FINMIND_API_TOKEN is missing")
+        print("ERROR: FINMIND_API_TOKEN is missing.")
+        return 1
 
-    financial = fetch("TaiwanStockFinancialStatements", token)
-    balance = fetch("TaiwanStockBalanceSheet", token)
-    cashflow = fetch("TaiwanStockCashFlowsStatement", token)
-    revenue = fetch("TaiwanStockMonthRevenue", token)
-    per = fetch("TaiwanStockPER", token)
+    all_data = {}
 
-    # 僅保留計算所需的明確項目。
-    eps = [
-        r for r in financial
-        if r.get("type") == "EPS"
-    ]
-    net_income = [
-        r for r in financial
-        if r.get("type") == "IncomeAfterTaxes"
-    ]
-    equity = [
-        r for r in balance
-        if r.get("type") == "EquityAttributableToOwnersOfParent"
-    ]
-    ocf = [
-        r for r in cashflow
-        if r.get("type") == "CashFlowsFromOperatingActivities"
-    ]
+    try:
+        for dataset in DATASETS:
+            rows = request_dataset(dataset, token)
+            all_data[dataset] = rows
 
-    # 同一財報日期只取一筆，不將重複代碼加總。
-    def by_date(rows):
-        result = {}
-        for row in rows:
-            result[row["date"]] = row["value"]
-        return dict(sorted(result.items()))
+            fields = sorted({
+                key
+                for row in rows
+                for key in row.keys()
+            })
 
-    eps_by_date = by_date(eps)
-    income_by_date = by_date(net_income)
-    equity_by_date = by_date(equity)
-    ocf_cumulative_by_date = by_date(ocf)
+            print("")
+            print("=" * 65)
+            print(f"DATASET: {dataset}")
+            print(f"ROW COUNT: {len(rows)}")
+            print(f"FIELDS: {', '.join(fields)}")
 
-    # 現金流先列出原始值與相鄰期差額。
-    # 差額僅是候選單季值，仍須確認來源為年初至今累計。
-    ocf_dates = sorted(ocf_cumulative_by_date)
-    ocf_quarter_candidates = {}
+            if dataset == "TaiwanStockCashFlowsStatement":
+                operating = [
+                    row for row in rows
+                    if row.get("type")
+                    == "CashFlowsFromOperatingActivities"
+                ]
+                print(
+                    "OPERATING CASH FLOW ROWS: "
+                    f"{len(operating)}"
+                )
+                print(json.dumps(
+                    operating[-8:],
+                    ensure_ascii=False,
+                    indent=2,
+                ))
+            else:
+                print("SAMPLES:")
+                print(json.dumps(
+                    rows[-3:],
+                    ensure_ascii=False,
+                    indent=2,
+                ))
 
-    for i, date in enumerate(ocf_dates):
-        current = ocf_cumulative_by_date[date]
-        if date.endswith("-03-31"):
-            ocf_quarter_candidates[date] = current
-        elif i > 0:
-            previous = ocf_cumulative_by_date[ocf_dates[i - 1]]
-            ocf_quarter_candidates[date] = current - previous
+            print(f"PASS: {dataset}")
 
-    latest_revenue = sorted(
-        revenue,
-        key=lambda r: (
-            r.get("revenue_year", 0),
-            r.get("revenue_month", 0),
-        ),
-    )
+    except Exception as exc:
+        print(f"ERROR: {exc}")
+        return 1
 
-    latest_per = sorted(per, key=lambda r: r["date"])
-
-    report = {
+    output = {
         "source": "FinMind",
-        "stockCode": CODE,
-        "generatedAt": datetime.now(TZ).isoformat(),
+        "stockCode": TEST_CODE,
+        "startDate": START_DATE,
+        "generatedAt": now_text(),
         "testOnly": True,
-        "rawQuarterlyCandidates": {
-            "EPS_by_date": eps_by_date,
-            "netIncome_by_date": income_by_date,
-            "parentEquity_by_date": equity_by_date,
-            "operatingCashFlowRaw_by_date": ocf_cumulative_by_date,
-            "operatingCashFlowQuarterCandidates_by_date":
-                ocf_quarter_candidates,
-        },
-        "latestRevenueRecords": latest_revenue[-14:],
-        "latestPERRecords": latest_per[-5:],
-        "validationNotes": [
-            "Verify EPS period basis before calculating TTM.",
-            "Verify net income period basis before calculating ROE.",
-            "Verify cash flow cumulative basis before using quarter differences.",
-            "ROE requires matching four-quarter net income and beginning/end equity.",
-            "Revenue YoY requires matching the same month in the prior year.",
-            "Do not treat this diagnostic output as production screening data.",
-        ],
+        "datasets": all_data,
+        "note": (
+            "Raw diagnostic data for calculation validation only. "
+            "Not production screening data."
+        ),
     }
 
-    print(json.dumps(report, ensure_ascii=False, indent=2))
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    temp_path = OUTPUT_FILE.with_suffix(".json.tmp")
+
+    try:
+        with temp_path.open("w", encoding="utf-8") as file:
+            json.dump(
+                output,
+                file,
+                ensure_ascii=False,
+                indent=2,
+            )
+            file.write("\n")
+
+        temp_path.replace(OUTPUT_FILE)
+
+    except Exception as exc:
+        print(
+            "ERROR: Cannot save raw data "
+            f"({type(exc).__name__})."
+        )
+        return 1
+
+    print("")
+    print("PASS: All five datasets retrieved.")
+    print(
+        "PASS: Raw test data saved to "
+        "data/fundamentals_raw_test.json"
+    )
+    print("NOTE: No production data was modified.")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
