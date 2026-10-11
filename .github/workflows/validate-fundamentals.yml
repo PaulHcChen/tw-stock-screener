@@ -34,4 +34,8 @@ jobs:
       - name: Audit financial statement periods
         run: python audit_fundamentals_periods.py
         
+      - name: Compare revised fundamentals calculations
+        run: python calculate_fundamentals_compare.py
+
+        
 
