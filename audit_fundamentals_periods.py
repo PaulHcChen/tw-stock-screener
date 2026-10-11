@@ -1,113 +1,158 @@
 
 import json
-import re
 from pathlib import Path
 
-RAW_PATH = Path("data/fundamentals_raw_test.json")
-
-KEYWORDS = (
-    "eps",
-    "incomeaftertax",
-    "netincome",
-    "equity",
-    "cashflowsfromoperatingactivities",
-    "netcashinflowfromoperatingactivities",
-)
+RAW = Path("data/fundamentals_raw_test.json")
 
 
-def normalize(value):
-    return re.sub(r"[^a-z0-9]", "", str(value).lower())
+def load_records():
+    obj = json.loads(RAW.read_text(encoding="utf-8"))
+    records = []
 
+    def walk(x, dataset=""):
+        if isinstance(x, dict):
+            if {"date", "type", "value"}.issubset(x):
+                records.append({
+                    "dataset": dataset,
+                    "date": str(x["date"]),
+                    "type": str(x["type"]),
+                    "value": x["value"],
+                    "origin_name": x.get("origin_name", ""),
+                })
+                return
+            for k, v in x.items():
+                ds = k if k in {
+                    "TaiwanStockFinancialStatements",
+                    "TaiwanStockBalanceSheet",
+                    "TaiwanStockCashFlowsStatement",
+                    "TaiwanStockMonthRevenue",
+                    "TaiwanStockPER",
+                } else dataset
+                walk(v, ds)
+        elif isinstance(x, list):
+            for item in x:
+                walk(item, dataset)
 
-def walk(obj, dataset="", records=None):
-    if records is None:
-        records = []
-
-    if isinstance(obj, dict):
-        # Identify a financial data record.
-        if "date" in obj and "type" in obj and "value" in obj:
-            records.append({
-                "dataset": dataset,
-                "date": str(obj.get("date", "")),
-                "type": str(obj.get("type", "")),
-                "value": obj.get("value"),
-                "origin_name": str(obj.get("origin_name", "")),
-            })
-            return records
-
-        for key, value in obj.items():
-            next_dataset = (
-                str(key)
-                if any(word in normalize(key) for word in (
-                    "financialstatements",
-                    "balancesheet",
-                    "cashflowsstatement",
-                ))
-                else dataset
-            )
-            walk(value, next_dataset, records)
-
-    elif isinstance(obj, list):
-        for item in obj:
-            walk(item, dataset, records)
-
+    walk(obj)
     return records
 
 
+def series(records, dataset, typ):
+    return {
+        r["date"]: float(r["value"])
+        for r in records
+        if r["dataset"] == dataset
+        and r["type"] == typ
+        and isinstance(r["value"], (int, float))
+    }
+
+
+def show_series(title, values):
+    print(f"\n{title}")
+    for date, value in sorted(values.items()):
+        print(f"  {date}: {value:,.3f}")
+
+
 def main():
-    print("=" * 70)
+    print("=" * 68)
     print("Fundamentals Period Audit - TEST ONLY")
-    print("=" * 70)
+    print("=" * 68)
 
-    if not RAW_PATH.exists():
-        print(f"[FAIL] Missing raw data: {RAW_PATH}")
+    if not RAW.exists():
+        print(f"[FAIL] Missing {RAW}")
         return 1
 
-    try:
-        raw = json.loads(RAW_PATH.read_text(encoding="utf-8"))
-    except Exception as exc:
-        print(f"[FAIL] Cannot read JSON: {exc}")
-        return 1
-
-    records = walk(raw)
-
+    records = load_records()
     if not records:
-        print("[FAIL] No financial records found in expected format.")
-        print("Please inspect the raw JSON structure before changing formulas.")
+        print("[FAIL] No financial records found.")
         return 1
 
-    selected = []
-    for row in records:
-        typ = normalize(row["type"])
-        if any(keyword in typ for keyword in KEYWORDS):
-            selected.append(row)
+    income_ds = "TaiwanStockFinancialStatements"
+    balance_ds = "TaiwanStockBalanceSheet"
+    cash_ds = "TaiwanStockCashFlowsStatement"
 
-    selected.sort(
-        key=lambda row: (
-            row["dataset"],
-            row["type"],
-            row["date"],
-        )
+    eps = series(records, income_ds, "EPS")
+    net_income = series(records, income_ds, "IncomeAfterTaxes")
+    parent_net_income = series(
+        records, income_ds, "EquityAttributableToOwnersOfParent"
+    )
+    parent_equity = series(
+        records, balance_ds, "EquityAttributableToOwnersOfParent"
+    )
+    total_equity = series(records, balance_ds, "Equity")
+    ocf = series(records, cash_ds, "CashFlowsFromOperatingActivities")
+    ocf_alt = series(
+        records, cash_ds, "NetCashInflowFromOperatingActivities"
     )
 
-    if not selected:
-        print("[FAIL] No matching EPS/income/equity/cash-flow records.")
-        return 1
+    show_series("EPS (quarterly records)", eps)
+    show_series("IncomeAfterTaxes", net_income)
+    show_series("Net income attributable to parent", parent_net_income)
+    show_series("Parent equity (balance sheet)", parent_equity)
+    show_series("Total equity (balance sheet)", total_equity)
+    show_series("Operating cash flow as supplied", ocf)
 
-    print(f"Matching records: {len(selected)}")
-    print("Values are printed as provided by the source; no conversion.")
-    print("-" * 70)
+    print("\nQuarterly OCF differences (diagnostic only)")
+    dates = sorted(ocf)
+    for i, date in enumerate(dates):
+        if date.endswith("-03-31"):
+            quarter_value = ocf[date]
+        elif i > 0:
+            quarter_value = ocf[date] - ocf[dates[i - 1]]
+        else:
+            continue
+        print(f"  {date}: {quarter_value:,.0f}")
 
-    for row in selected:
+    if ocf and ocf_alt:
+        common = sorted(set(ocf) & set(ocf_alt))
+        same = all(abs(ocf[d] - ocf_alt[d]) < 0.01 for d in common)
         print(
-            f'{row["dataset"] or "(dataset unknown)"} | '
-            f'{row["date"]} | {row["type"]} | '
-            f'{row["value"]} | {row["origin_name"]}'
+            "\nOCF aliases identical on matching dates: "
+            f"{same} ({len(common)} dates)"
         )
 
-    print("-" * 70)
-    print("AUDIT OUTPUT ONLY: no formulas or source data were modified.")
-    print("Check quarterly versus year-to-date definitions before recalculating.")
+    print("\nLatest four EPS records vs net income")
+    common_dates = sorted(set(eps) & set(net_income))
+    last4 = common_dates[-4:]
+    print(f"  Dates: {last4}")
+    if len(last4) == 4:
+        print(f"  Sum of four EPS values: {sum(eps[d] for d in last4):.3f}")
+        print(
+            "  Sum of four net income values: "
+            f"{sum(net_income[d] for d in last4):,.0f}"
+        )
+        print(
+            "  NOTE: EPS sum is diagnostic only; share bases may differ."
+        )
+
+    print("\nROE diagnostic")
+    if len(last4) == 4 and last4[0] in parent_equity:
+        start_date = sorted(
+            d for d in parent_equity if d < last4[0]
+        )
+        end_date = last4[-1]
+        if start_date and end_date in parent_equity:
+            start = parent_equity[start_date[-1]]
+            end = parent_equity[end_date]
+            avg_equity = (start + end) / 2
+            profit = sum(net_income[d] for d in last4)
+            parent_profit = sum(
+                parent_net_income[d] for d in last4
+                if d in parent_net_income
+            )
+            print(f"  Opening parent equity date: {start_date[-1]}")
+            print(f"  Closing parent equity date: {end_date}")
+            print(
+                "  ROE using total net income / average parent equity: "
+                f"{profit / avg_equity * 100:.3f}%"
+            )
+            print(
+                "  ROE using parent net income / average parent equity: "
+                f"{parent_profit / avg_equity * 100:.3f}%"
+            )
+
+    print("\nAUDIT ONLY: no source data or production formulas changed.")
+    print("Confirm accounting definitions before accepting any candidate.")
     return 0
 
 
