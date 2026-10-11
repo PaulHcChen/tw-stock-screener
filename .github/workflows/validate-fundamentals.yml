@@ -27,3 +27,7 @@ jobs:
 
       - name: Calculate fundamentals test
         run: python calculate_fundamentals.py
+        
+      - name: Check fundamentals data quality
+        run: python check_fundamentals_quality.py
+
