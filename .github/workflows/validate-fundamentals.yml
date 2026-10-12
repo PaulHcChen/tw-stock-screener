@@ -42,6 +42,10 @@ jobs:
         
       - name: Verify TSMC quarterly EPS TTM
         run: python verify_tsmc_eps_ttm.py
+        
+      - name: Verify TSMC FY2025 basic EPS
+        run: python verify_tsmc_basic_eps.py
+
 
 
 
